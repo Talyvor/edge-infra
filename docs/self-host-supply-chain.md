@@ -4,7 +4,10 @@ Every image the charts install is signed when it is built, and carries two signe
 attestations: what is inside it (an SBOM) and how it was built (SLSA provenance).
 The eight images are `edge-control-plane`, `edge-issuer`, `edge-ratelimit`,
 `edge-secrets`, `edge-migrate`, `edge-attest`, `edge-osb` and `auth-service`, all
-under `ghcr.io/gaboracnicolai`.
+under `ghcr.io/talyvor`. Until 12 Oct 2026, when this repository moved from
+`gaboracnicolai` to the Talyvor organisation, they were published under
+`ghcr.io/gaboracnicolai` and signed as `gaboracnicolai/edge-infra`; check one of
+those against that signer instead.
 
 | | What it is | Check it with |
 |---|---|---|
@@ -21,11 +24,11 @@ name:
 
 ```
 issuer    https://token.actions.githubusercontent.com
-identity  https://github.com/gaboracnicolai/edge-infra/.github/workflows/images.yaml@<ref>
+identity  https://github.com/Talyvor/edge-infra/.github/workflows/images.yaml@<ref>
 ```
 
 `<ref>` is `refs/heads/main` for a build from main, or `refs/tags/v1.2.3` for the
-release `v1.2.3`. The certificate must also name `gaboracnicolai/edge-infra` as
+release `v1.2.3`. The certificate must also name `Talyvor/edge-infra` as
 the repository the run was in. `images.yaml` is a reusable workflow, and another
 repository that called it would get a certificate with the same identity but its
 own repository name. A signature made by another repository, another workflow,
@@ -47,18 +50,18 @@ older signed image retagged under the name you asked for does not pass. It exits
 1 if any image is missing its signature, its SBOM or its provenance:
 
 ```
-ok    ghcr.io/gaboracnicolai/edge-osb@sha256:…
-      signed by   https://github.com/gaboracnicolai/edge-infra/.github/workflows/images.yaml@refs/tags/v1.2.3
+ok    ghcr.io/talyvor/edge-osb@sha256:…
+      signed by   https://github.com/Talyvor/edge-infra/.github/workflows/images.yaml@refs/tags/v1.2.3
       sbom        <n> packages (SPDX, syft)
-      provenance  built from git+https://github.com/gaboracnicolai/edge-infra@refs/tags/v1.2.3 at <sha> by https://github.com/gaboracnicolai/edge-infra/actions/runs/…
+      provenance  built from git+https://github.com/Talyvor/edge-infra@refs/tags/v1.2.3 at <sha> by https://github.com/Talyvor/edge-infra/actions/runs/…
 …
-all 8 image(s) signed, with an SBOM and SLSA provenance, by https://github.com/gaboracnicolai/edge-infra/.github/workflows/images.yaml@refs/{heads/main,tags/v<SemVer>}
+all 8 image(s) signed, with an SBOM and SLSA provenance, by https://github.com/Talyvor/edge-infra/.github/workflows/images.yaml@refs/{heads/main,tags/v<SemVer>}
 ```
 
 You can set the signer yourself. `SIGNER_REF=refs/tags/v1.2.3` accepts only that
 release's signer. `SIGNER_SHA=<sha>` requires the commit, both in the
 certificate and in the provenance. You can name images directly:
-`bash deploy/hack/supply-chain.sh verify ghcr.io/gaboracnicolai/edge-osb@sha256:…`.
+`bash deploy/hack/supply-chain.sh verify ghcr.io/talyvor/edge-osb@sha256:…`.
 If you have no cosign, `bash deploy/hack/supply-chain.sh install <dir>` fetches
 the pinned one and checks its sha256.
 
@@ -102,10 +105,10 @@ that image and name that CVE.
 You do not need this repository:
 
 ```sh
-IMG=ghcr.io/gaboracnicolai/edge-control-plane:1.2.3
+IMG=ghcr.io/talyvor/edge-control-plane:1.2.3
 WHO=(--certificate-oidc-issuer https://token.actions.githubusercontent.com
-     --certificate-github-workflow-repository gaboracnicolai/edge-infra
-     --certificate-identity https://github.com/gaboracnicolai/edge-infra/.github/workflows/images.yaml@refs/tags/v1.2.3)
+     --certificate-github-workflow-repository Talyvor/edge-infra
+     --certificate-identity https://github.com/Talyvor/edge-infra/.github/workflows/images.yaml@refs/tags/v1.2.3)
 
 cosign verify "${WHO[@]}" "$IMG"
 
@@ -118,7 +121,7 @@ cosign verify-attestation "${WHO[@]}" --type slsaprovenance1 "$IMG" \
 
 To accept any build from main or any release instead of one tag, swap
 `--certificate-identity` for
-`--certificate-identity-regexp '^https://github\.com/gaboracnicolai/edge-infra/\.github/workflows/images\.yaml@refs/(heads/main|tags/v.*)$'`.
+`--certificate-identity-regexp '^https://github\.com/Talyvor/edge-infra/\.github/workflows/images\.yaml@refs/(heads/main|tags/v.*)$'`.
 
 ## How CI proves it
 
@@ -142,16 +145,16 @@ kubectl apply -f k8s/policies/verify-image-signatures.yaml
 ```
 
 Every pod, and every Deployment, StatefulSet, DaemonSet, Job or CronJob, that
-names an image under `ghcr.io/gaboracnicolai/` must carry a signature from the
-signer above: `images.yaml` in `gaboracnicolai/edge-infra`, on main or on a
+names an image under `ghcr.io/talyvor/` must carry a signature from the
+signer above: `images.yaml` in `Talyvor/edge-infra`, on main or on a
 `v<SemVer>` release tag. Anything else is refused when you apply it:
 
 ```
-$ kubectl create deployment x --image=ghcr.io/gaboracnicolai/auth-service:<sha>-amd64
+$ kubectl create deployment x --image=ghcr.io/talyvor/auth-service:<sha>-amd64
 error: failed to create deployment: admission webhook "mutate.kyverno.svc-fail" denied the request:
 resource Deployment/default/x was blocked due to the following policies
 verify-image-signatures:
-  autogen-signed-by-edge-infra-images-workflow: 'failed to verify image ghcr.io/gaboracnicolai/auth-service:<sha>-amd64:
+  autogen-signed-by-edge-infra-images-workflow: 'failed to verify image ghcr.io/talyvor/auth-service:<sha>-amd64:
     .attestors[0].entries[0].keyless: no signatures found'
 ```
 
@@ -159,8 +162,8 @@ A signature from a pull-request build, another workflow or another repository
 is refused the same way, with `subject mismatch` or `extension mismatch`. An
 image that passes is rewritten to the digest Kyverno verified, e.g.
 `edge-osb:1.2.3@sha256:…`, so the tag cannot move to other bytes after.
-A first-party image written any other way, such as `ghcr.io:443/gaboracnicolai/…`
-or `GHCR.IO/gaboracnicolai/…`, is refused too, because the check matches the
+A first-party image written any other way, such as `ghcr.io:443/talyvor/…`
+or `GHCR.IO/talyvor/…`, is refused too, because the check matches the
 image as written. Images from other registries are not checked.
 
 The policy fails closed. If Kyverno cannot reach ghcr.io or the public Rekor
@@ -185,7 +188,7 @@ helm install edge-osb deploy/helm/edge-osb --set global.imageRegistry=registry.i
 
 | The chart names | Pulled as |
 | --- | --- |
-| `ghcr.io/gaboracnicolai/edge-osb:<tag>` | `registry.internal:5000/gaboracnicolai/edge-osb:<tag>` |
+| `ghcr.io/talyvor/edge-osb:<tag>` | `registry.internal:5000/talyvor/edge-osb:<tag>` |
 | `envoyproxy/envoy:<tag>@sha256:…` | `registry.internal:5000/envoyproxy/envoy:<tag>@sha256:…` |
 | `redis:<tag>@sha256:…` | `registry.internal:5000/library/redis:<tag>@sha256:…` |
 
@@ -203,7 +206,7 @@ profile, and fails if any image is not from the override; CI runs it.
 ## What this does not cover yet
 
 - **Admission does not check images pulled from your own registry.** The
-  Kyverno policy matches `ghcr.io/gaboracnicolai/*` as written, so with
+  Kyverno policy matches `ghcr.io/talyvor/*` as written, so with
   `global.imageRegistry` set it no longer applies. Run `make verify-images`
   against the originals before you copy them.
 

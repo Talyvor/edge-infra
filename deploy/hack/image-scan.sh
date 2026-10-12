@@ -29,7 +29,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REGISTRY="${RELEASE_REGISTRY:-ghcr.io/gaboracnicolai}"
+REGISTRY="${RELEASE_REGISTRY:-ghcr.io/talyvor}"
 
 TRIVY_VERSION=0.74.0
 

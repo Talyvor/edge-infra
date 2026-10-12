@@ -14,7 +14,7 @@
 #   - the cluster: kind, 1 control-plane + 2 workers, Calico as the network
 #     plugin (up.sh Phase 1), reached through a kubeconfig holding only it;
 #   - the release: every first-party image built from the working tree, tagged
-#     ghcr.io/gaboracnicolai/<name>:$EDGE_VERSION and loaded onto the nodes, and
+#     ghcr.io/talyvor/<name>:$EDGE_VERSION and loaded onto the nodes, and
 #     the guide's `git clone --branch v$EDGE_VERSION https://github.com/…` served
 #     from a local copy of HEAD tagged v$EDGE_VERSION (git url.insteadOf), so it
 #     clones the commit under test. Local runs test the COMMITTED HEAD: commit
@@ -42,7 +42,7 @@ require_toolchain docker kind kubectl helm jq openssl curl git
 PROFILE=ha
 EDGE_VERSION="${EDGE_VERSION:-0.0.0-install-guide}"
 NEW_VERSION="${NEW_VERSION:-0.0.1-install-guide}"
-CLONE_URL=https://github.com/gaboracnicolai/edge-infra.git
+CLONE_URL=https://github.com/Talyvor/edge-infra.git
 FIRST_PARTY="edge-control-plane edge-issuer edge-ratelimit edge-secrets edge-migrate edge-attest edge-osb auth-service"
 
 if kind get clusters 2>/dev/null | grep -qx "$CLUSTER_NAME"; then
@@ -117,13 +117,13 @@ GUIDE_BLOCKS="$(doc_script install.md 10 "$WORK/install.sh")"
 UPGRADE_BLOCKS="$(doc_script upgrade.md 4 "$WORK/upgrade.sh")"
 ok "install.md: $GUIDE_BLOCKS blocks; upgrade.md: $UPGRADE_BLOCKS blocks"
 
-# release <version> — the images under ghcr.io/gaboracnicolai/<name>:<version> on
+# release <version> — the images under ghcr.io/talyvor/<name>:<version> on
 # the nodes, and the commit under test as git tag v<version> in the mirror.
 release() {
   local name
   for name in $FIRST_PARTY; do
-    docker tag "$name:$IMAGE_TAG" "ghcr.io/gaboracnicolai/$name:$1"
-    kind load docker-image --name "$CLUSTER_NAME" "ghcr.io/gaboracnicolai/$name:$1"
+    docker tag "$name:$IMAGE_TAG" "ghcr.io/talyvor/$name:$1"
+    kind load docker-image --name "$CLUSTER_NAME" "ghcr.io/talyvor/$name:$1"
   done
   git -C "$REPO_ROOT" push --quiet "$WORK/mirror.git" "HEAD:refs/tags/v$1"
   ok "release $1: eight images on the nodes, git tag v$1 = $(git -C "$REPO_ROOT" rev-parse --short HEAD)"

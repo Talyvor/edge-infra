@@ -8,7 +8,7 @@ metadata:
 spec:
   project: edge-infra
   source:
-    repoURL: https://github.com/gaboracnicolai/edge-infra
+    repoURL: https://github.com/Talyvor/edge-infra
     targetRevision: HEAD
     path: k8s/policies
     directory:

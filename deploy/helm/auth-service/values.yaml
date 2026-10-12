@@ -1,7 +1,7 @@
 replicaCount: 2
 
 image:
-  repository: ghcr.io/gaboracnicolai/auth-service
+  repository: ghcr.io/talyvor/auth-service
   tag: "447ceb18980fc02fdc7e28db16354c62e3018850"  # pin to the SHA you pushed
   pullPolicy: IfNotPresent
 
@@ -134,7 +134,7 @@ confidential:
   tolerations: []
   attestation:
     image:
-      repository: ghcr.io/gaboracnicolai/edge-attest
+      repository: ghcr.io/talyvor/edge-attest
       tag: "ad3eed7c31f72c3f7892cf9ce1270bacd7a9f13e"  # pin to the SHA you pushed
       pullPolicy: IfNotPresent
     # The attester's evidence endpoint; the gate adds ?runtime_data=<nonce>. The
@@ -152,7 +152,7 @@ global:
   # Pull every image this chart runs from this registry instead of the one each
   # image names: a mirror, or the local registry of an air-gapped install (e.g.
   # registry.internal:5000). The path is kept, so mirror the images under it:
-  # ghcr.io/gaboracnicolai/edge-osb -> <registry>/gaboracnicolai/edge-osb,
+  # ghcr.io/talyvor/edge-osb -> <registry>/talyvor/edge-osb,
   # envoyproxy/envoy -> <registry>/envoyproxy/envoy,
   # redis -> <registry>/library/redis.  "" = each image's own registry.
   imageRegistry: ""

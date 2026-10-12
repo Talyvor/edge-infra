@@ -14,7 +14,7 @@ confidential:
     talyvor.io/confidential: "true"        # labels only your confidential nodes carry
   tolerations: []                           # if those nodes are tainted
   attestation:
-    image: {repository: ghcr.io/gaboracnicolai/edge-attest, tag: <sha>}
+    image: {repository: ghcr.io/talyvor/edge-attest, tag: <sha>}
     evidenceURL: http://127.0.0.1:8006/aa/evidence
     trustedKey: <the attester's ed25519 public key, base64>
     measurements: [<launch measurement allowed to start, hex>]

@@ -36,7 +36,7 @@ self-host path is one command. Either run the image:
 
 ```
 docker run --rm -e DATABASE_URL='postgres://user:pass@host:5432/edge?sslmode=disable' \
-  ghcr.io/gaboracnicolai/edge-migrate:<tag>
+  ghcr.io/talyvor/edge-migrate:<tag>
 ```
 
 or the binary directly:

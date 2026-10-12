@@ -6,7 +6,7 @@ metadata:
 spec:
   description: Edge infrastructure — xDS control plane, proxies, OSB, auth
   sourceRepos:
-    - "https://github.com/gaboracnicolai/edge-infra"
+    - "https://github.com/Talyvor/edge-infra"
   destinations:
     - namespace: infra
       server: https://kubernetes.default.svc

@@ -7,7 +7,7 @@ finished, it upgrades that install to a second release with these commands and c
 
 ## Before you start
 
-1. **Read the release notes** on the [releases page](https://github.com/gaboracnicolai/edge-infra/releases)
+1. **Read the release notes** on the [releases page](https://github.com/Talyvor/edge-infra/releases)
    for every release between yours and the new one.
 2. **Back up**, and check the backup finished ([Backup and restore](backup.md)). Schema changes
    only go forward, so the backup is your way back.
@@ -30,7 +30,7 @@ Get the new release and pin its charts, as in step 1 of the install guide. For `
 it on the connected side first, as [Air-gapped install](air-gap.md) says.
 
 ```sh
-git clone --quiet --depth 1 --branch "v$NEW_VERSION" https://github.com/gaboracnicolai/edge-infra.git "../edge-infra-$NEW_VERSION"
+git clone --quiet --depth 1 --branch "v$NEW_VERSION" https://github.com/Talyvor/edge-infra.git "../edge-infra-$NEW_VERSION"
 cd "../edge-infra-$NEW_VERSION"
 bash deploy/hack/release-pin.sh "$NEW_VERSION"
 ```
@@ -73,7 +73,7 @@ down are left out), and every chart's own test passes:
 ```sh
 kubectl get pods -A -o json \
   | jq -r '.items[] | select(.metadata.deletionTimestamp == null) | .spec.containers[].image' \
-  | grep gaboracnicolai/ | sort -u | tee running-images.txt
+  | grep talyvor/ | sort -u | tee running-images.txt
 OLD="$(grep -v ":$NEW_VERSION\$" running-images.txt || true)"
 [ -z "$OLD" ]
 for release in edge-datastores edge-control-plane edge-issuer auth-service edge-osb edge-secrets; do

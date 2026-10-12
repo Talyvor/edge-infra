@@ -1,7 +1,7 @@
 api:
   replicaCount: 2
   image:
-    repository: ghcr.io/gaboracnicolai/edge-osb
+    repository: ghcr.io/talyvor/edge-osb
     tag: "447ceb18980fc02fdc7e28db16354c62e3018850"  # pin to the SHA you pushed
     pullPolicy: IfNotPresent
   port: 8080
@@ -35,7 +35,7 @@ worker:
   autoscaling:
     enabled: false
   image:
-    repository: ghcr.io/gaboracnicolai/edge-osb
+    repository: ghcr.io/talyvor/edge-osb
     tag: "447ceb18980fc02fdc7e28db16354c62e3018850"  # pin to the SHA you pushed
     pullPolicy: IfNotPresent
   resources:
@@ -175,7 +175,7 @@ global:
   # Pull every image this chart runs from this registry instead of the one each
   # image names: a mirror, or the local registry of an air-gapped install (e.g.
   # registry.internal:5000). The path is kept, so mirror the images under it:
-  # ghcr.io/gaboracnicolai/edge-osb -> <registry>/gaboracnicolai/edge-osb,
+  # ghcr.io/talyvor/edge-osb -> <registry>/talyvor/edge-osb,
   # envoyproxy/envoy -> <registry>/envoyproxy/envoy,
   # redis -> <registry>/library/redis.  "" = each image's own registry.
   imageRegistry: ""

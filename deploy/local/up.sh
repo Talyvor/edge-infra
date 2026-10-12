@@ -2234,7 +2234,8 @@ phase25_default_jwt_osb() {
 }
 
 # ---- Phase 26 — an unsigned first-party image is refused at admission (B28.210)
-# k8s/policies/verify-image-signatures.yaml: every ghcr.io/gaboracnicolai/* image
+# k8s/policies/verify-image-signatures.yaml: every ghcr.io/talyvor/* image (and, built before the
+# move on 12 Oct 2026, every ghcr.io/gaboracnicolai/* one, against its own signer)
 # must carry a keyless cosign signature from this repo's images.yaml, on main or
 # a release tag. Kyverno fetches the signature from ghcr and checks it against
 # the public Rekor log. Both Deployments have 0 replicas: the check is admission,

@@ -37,8 +37,11 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REGISTRY="${RELEASE_REGISTRY:-ghcr.io/gaboracnicolai}"
-SIGNER_REPO="${SIGNER_REPO:-gaboracnicolai/edge-infra}"
+# Since 12 Oct 2026 the repository is Talyvor/edge-infra and its images are under ghcr.io/talyvor.
+# An image built before then is under ghcr.io/gaboracnicolai and was signed by gaboracnicolai/edge-infra:
+# verify one with RELEASE_REGISTRY=ghcr.io/gaboracnicolai SIGNER_REPO=gaboracnicolai/edge-infra.
+REGISTRY="${RELEASE_REGISTRY:-ghcr.io/talyvor}"
+SIGNER_REPO="${SIGNER_REPO:-Talyvor/edge-infra}"
 ISSUER=https://token.actions.githubusercontent.com
 WORKFLOW=.github/workflows/images.yaml
 

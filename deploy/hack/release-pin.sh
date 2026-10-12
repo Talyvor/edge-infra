@@ -5,7 +5,7 @@
 #   bash deploy/hack/release-pin.sh --list   # print the pinned refs, one per line
 #
 # First-party = a `repository:` under $RELEASE_REGISTRY (default
-# ghcr.io/gaboracnicolai). The `tag:` line straight after it is the pin; third-
+# ghcr.io/talyvor). The `tag:` line straight after it is the pin; third-
 # party images (envoy, digest-pinned) are left alone. --list exits 1 unless every
 # first-party image carries the same tag, so a half-pinned set of charts cannot be
 # released or tested as one.
@@ -16,7 +16,7 @@
 set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-REGISTRY="${RELEASE_REGISTRY:-ghcr.io/gaboracnicolai}"
+REGISTRY="${RELEASE_REGISTRY:-ghcr.io/talyvor}"
 REPO_RE="^[[:space:]]*repository:[[:space:]]*\"?${REGISTRY//./\\.}/"
 
 die() { echo "release-pin: $*" >&2; exit 1; }

@@ -21,7 +21,7 @@ export REGISTRY=registry.internal:5000
 **The release.** The charts, the scripts and the guide, pinned to the release's images:
 
 ```sh
-git clone --depth 1 --branch "v$EDGE_VERSION" https://github.com/gaboracnicolai/edge-infra.git
+git clone --depth 1 --branch "v$EDGE_VERSION" https://github.com/Talyvor/edge-infra.git
 cd edge-infra
 bash deploy/hack/release-pin.sh "$EDGE_VERSION"
 ```
@@ -55,7 +55,7 @@ Copy each one into your registry under the path the charts will ask for. A chart
 
 | The chart names | It pulls |
 |---|---|
-| `ghcr.io/gaboracnicolai/edge-osb:1.0.0` | `registry.internal:5000/gaboracnicolai/edge-osb:1.0.0` |
+| `ghcr.io/talyvor/edge-osb:1.0.0` | `registry.internal:5000/talyvor/edge-osb:1.0.0` |
 | `envoyproxy/envoy:v1.39.2@sha256:…` | `registry.internal:5000/envoyproxy/envoy:v1.39.2@sha256:…` |
 | `postgres:16.15-alpine@sha256:…` | `registry.internal:5000/library/postgres:16.15-alpine@sha256:…` |
 
@@ -121,7 +121,7 @@ for `edge-datastores`).
 ## What is different without the internet
 
 - **Image signatures are not checked at admission.** The Kyverno policy that refuses unsigned
-  images matches `ghcr.io/gaboracnicolai/*` and checks the signing log online, so it does not apply
+  images matches `ghcr.io/talyvor/*` and checks the signing log online, so it does not apply
   to your registry. Verify on the connected side, as above, before you copy.
 - **An identity provider outside the cluster** is trusted from a copy of its keys in a Secret,
   which you refresh when it rotates them: [No internet at run time](no-internet-at-run-time.md#trusting-an-identity-provider-outside-the-cluster).
