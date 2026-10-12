@@ -359,8 +359,10 @@ jobs:
     permissions:
       contents: read
       packages: read
+    # The same lowercase owner as env.OWNER above, written out: a job's own env cannot read the env
+    # context, and github.repository_owner ("Talyvor") is not a valid image name.
     env:
-      O: ghcr.io/${{ env.OWNER }}
+      O: ghcr.io/talyvor
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Install trivy (pinned + checksum-verified)
