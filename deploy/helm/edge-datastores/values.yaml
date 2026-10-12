@@ -21,7 +21,7 @@ global:
   imagePullSecrets: []
   # Pull every image here (Postgres, Redis, NATS, the schema job) from this
   # registry instead, the path kept: redis -> <registry>/library/redis,
-  # ghcr.io/gaboracnicolai/edge-migrate -> <registry>/gaboracnicolai/edge-migrate.
+  # ghcr.io/talyvor/edge-migrate -> <registry>/talyvor/edge-migrate.
   # "" = each image's own registry.
   imageRegistry: ""
 
@@ -103,7 +103,7 @@ external:
 migrate:
   enabled: true
   image:
-    repository: ghcr.io/gaboracnicolai/edge-migrate
+    repository: ghcr.io/talyvor/edge-migrate
     tag: "ad3eed7c31f72c3f7892cf9ce1270bacd7a9f13e"  # pin to the SHA you pushed
     pullPolicy: IfNotPresent
   backoffLimit: 6

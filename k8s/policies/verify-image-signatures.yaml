@@ -7,13 +7,17 @@ metadata:
     policies.kyverno.io/category: Talyvor Edge Security
     policies.kyverno.io/severity: high
     policies.kyverno.io/description: >-
-      Every first-party image (ghcr.io/gaboracnicolai/*) must carry a keyless
+      Every first-party image (ghcr.io/talyvor/*) must carry a keyless
       cosign signature made by this repository's images.yaml workflow, on main
       or on a v<SemVer> release tag — the same signer
       `make verify-images` checks (docs/self-host-supply-chain.md). An image
       with no signature, or one signed by another repository, workflow or ref
       (a pull-request build), is refused at admission. An admitted image is
       pinned to the digest that was verified, so the tag cannot move after.
+      Images built before 12 Oct 2026, when this repository moved from
+      gaboracnicolai to the Talyvor organisation, are under
+      ghcr.io/gaboracnicolai/* and are checked against the signer they really
+      have, gaboracnicolai/edge-infra.
 spec:
   # Fail closed: if Kyverno cannot reach the registry or Rekor, a first-party
   # pod is refused rather than admitted unverified.
@@ -24,6 +28,36 @@ spec:
   background: false
   rules:
     - name: signed-by-edge-infra-images-workflow
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      verifyImages:
+        - imageReferences:
+            - "ghcr.io/talyvor/*"
+          failureAction: Enforce
+          required: true
+          mutateDigest: true
+          verifyDigest: true
+          attestors:
+            - entries:
+                - keyless:
+                    issuer: https://token.actions.githubusercontent.com
+                    subjectRegExp: '^https://github\.com/Talyvor/edge-infra/\.github/workflows/images\.yaml@refs/(heads/main|tags/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$'
+                    # images.yaml is a reusable workflow: another repository
+                    # calling it gets a certificate with this same subject, so
+                    # the repository the run was in is pinned on its own.
+                    additionalExtensions:
+                      githubWorkflowRepository: Talyvor/edge-infra
+                    rekor:
+                      url: https://rekor.sigstore.dev
+    # Built before 12 Oct 2026, when this repository moved from gaboracnicolai to the
+    # Talyvor organisation: those images are under ghcr.io/gaboracnicolai/* and were
+    # signed by the repository under its old name, so they are checked against that
+    # signer, with everything else the same. Remove this rule once nothing runs or
+    # tests an image from there (deploy/local/lib.sh's Phase 26 fixtures are the last).
+    - name: signed-by-edge-infra-images-workflow-before-the-move
       match:
         any:
           - resources:
@@ -49,7 +83,7 @@ spec:
                     rekor:
                       url: https://rekor.sigstore.dev
     # imageReferences matches the image as written, and the runtime pulls
-    # ghcr.io:443/gaboracnicolai/… or GHCR.IO/gaboracnicolai/… just the same, so
+    # ghcr.io:443/talyvor/… or GHCR.IO/talyvor/… just the same, so
     # such a spelling would skip the check above. Refuse it.
     - name: first-party-images-spelled-canonically
       match:
@@ -60,9 +94,20 @@ spec:
       validate:
         failureAction: Enforce
         message: >-
-          A first-party image must be written as ghcr.io/gaboracnicolai/<name>,
-          or its signature is not checked.
+          A first-party image must be written as ghcr.io/talyvor/<name> (or, built
+          before 12 Oct 2026, ghcr.io/gaboracnicolai/<name>), or its signature is not
+          checked.
         foreach:
+          - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
+            deny:
+              conditions:
+                all:
+                  - key: "{{ contains(to_lower(element.image), 'talyvor/') }}"
+                    operator: Equals
+                    value: true
+                  - key: "{{ starts_with(element.image, 'ghcr.io/talyvor/') }}"
+                    operator: Equals
+                    value: false
           - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
             deny:
               conditions:

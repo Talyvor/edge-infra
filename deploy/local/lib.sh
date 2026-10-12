@@ -48,6 +48,9 @@ DEX_IMAGE="${DEX_IMAGE:-ghcr.io/dexidp/dex:v2.41.1}"
 # SIGNED_IMAGE is a multi-arch image that run signed; UNSIGNED_IMAGE is the
 # per-arch auth-service intermediate it merged into the signed index, which
 # nothing signs.
+# Built and signed before 12 Oct 2026, when this repository moved from gaboracnicolai to the Talyvor
+# organisation: ghcr.io/gaboracnicolai, signed by gaboracnicolai/edge-infra, which the policy's
+# before-the-move rule still checks. Move them to a ghcr.io/talyvor main build, and drop that rule.
 SIGNED_IMAGE="${SIGNED_IMAGE:-ghcr.io/gaboracnicolai/edge-osb:608373ac9acc3dafc036da69cb2ef7251182db6d}"
 UNSIGNED_IMAGE="${UNSIGNED_IMAGE:-ghcr.io/gaboracnicolai/auth-service:608373ac9acc3dafc036da69cb2ef7251182db6d-amd64}"
 

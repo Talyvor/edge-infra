@@ -37,7 +37,7 @@ the window between step 1 and step 4, in which provisioning must stay frozen.
    default), and they self-heal. A `kubectl scale` or `helm --set` is reverted within minutes, so
    **every change below is a PR to that profile.**
 2. **Choose `<SHA>`.** Use a main commit with a green "Build and push images" run (`images.yaml` pushes
-   `ghcr.io/gaboracnicolai/<image>:<sha>` on every main push). Confirm that its code is the code the
+   `ghcr.io/talyvor/<image>:<sha>` on every main push). Confirm that its code is the code the
    rehearsal passed on:
    ```bash
    gh run list --workflow images.yaml --branch main --status success --limit 5 --json headSha,createdAt

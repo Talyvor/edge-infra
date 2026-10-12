@@ -33,8 +33,8 @@ one. Args: (list $ $existingSecret "KEY" $setValue). */}}
 
 {{/*
 An image reference. With global.imageRegistry set, the image is pulled from that
-registry instead, its path kept: ghcr.io/gaboracnicolai/edge-osb becomes
-<registry>/gaboracnicolai/edge-osb, envoyproxy/envoy <registry>/envoyproxy/envoy
+registry instead, its path kept: ghcr.io/talyvor/edge-osb becomes
+<registry>/talyvor/edge-osb, envoyproxy/envoy <registry>/envoyproxy/envoy
 and redis <registry>/library/redis.
 Call with (dict "image" <an image: block> "global" $.Values.global).
 */}}

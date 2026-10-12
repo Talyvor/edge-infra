@@ -46,7 +46,7 @@ part needs and what keeps serving when one fails.
   see [§ Your own datastores](#your-own-datastores).
 - **Ports 80 and 443 free on the workers.** The gateway listens on them on the node itself.
 - **About 3 CPUs and 3 GiB of memory** to spare. [Sizing](sizing-and-ha.md) has the detail.
-- **A way to pull** `ghcr.io/gaboracnicolai/*` and the Docker Hub images the charts name. With no
+- **A way to pull** `ghcr.io/talyvor/*` and the Docker Hub images the charts name. With no
   route out, follow [Air-gapped install](air-gap.md) first.
 
 **On your machine:** `kubectl` pointed at the cluster, `helm` (3.14 or later, or 4), `git`,
@@ -57,7 +57,7 @@ Set four things in your shell before you start:
 | Variable | What it is | Example |
 |---|---|---|
 | `PROFILE` | the profile you install: `lite`, `ha` or `airgap` | `export PROFILE=ha` |
-| `EDGE_VERSION` | the release you install, from the [releases page](https://github.com/gaboracnicolai/edge-infra/releases) | `export EDGE_VERSION=1.0.0` |
+| `EDGE_VERSION` | the release you install, from the [releases page](https://github.com/Talyvor/edge-infra/releases) | `export EDGE_VERSION=1.0.0` |
 | `NODE_CIDR` | the network your nodes' InternalIPs are in. The gateway runs on the node's own network, so this is where its requests to the services come from | `export NODE_CIDR=10.0.0.0/16` |
 | `GATEWAY` | an address that reaches port 80 on a worker: a node IP, or your load balancer in front of the nodes | `export GATEWAY=10.0.1.20` |
 
@@ -78,7 +78,7 @@ at that release's images, and `--list` prints the eight first-party images it wi
 line shows your profile's files.
 
 ```sh
-git clone --quiet --depth 1 --branch "v$EDGE_VERSION" https://github.com/gaboracnicolai/edge-infra.git
+git clone --quiet --depth 1 --branch "v$EDGE_VERSION" https://github.com/Talyvor/edge-infra.git
 cd edge-infra
 bash deploy/hack/release-pin.sh "$EDGE_VERSION"
 bash deploy/hack/release-pin.sh --list

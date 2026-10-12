@@ -65,7 +65,7 @@ including the KEK. Limit who has those rights in `infra` and `edge`.
 - **The bundled datastores do not use TLS** inside the cluster, and run one copy each. Use your own
   with TLS for production ([sizing and HA](sizing-and-ha.md#high-availability)).
 - **Images from your own registry are not checked at admission**: the signature policy matches
-  `ghcr.io/gaboracnicolai/*` ([air-gap](air-gap.md#what-is-different-without-the-internet)).
+  `ghcr.io/talyvor/*` ([air-gap](air-gap.md#what-is-different-without-the-internet)).
 - **A broker team key is a bearer secret.** Anyone holding it acts as that team. Store it like a
   password; Edge keeps only its hash.
 - **Denial of service** beyond rate limits: Edge does not absorb a flood aimed at the nodes' ports.

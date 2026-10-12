@@ -42,7 +42,11 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  OWNER: ${{ github.repository_owner }}
+  # Written out, in lowercase. Since 12 Oct 2026 this repository belongs to the GitHub organisation
+  # whose login is "Talyvor" (capital T), and Docker refuses an image name with a capital letter, so
+  # github.repository_owner can no longer be used for an image name. The signer identity is still
+  # github.repository (Talyvor/edge-infra), exactly as the certificate spells it.
+  OWNER: talyvor
 
 jobs:
   # The version every image below is stamped with (deploy/hack/release-version.sh):
@@ -356,7 +360,7 @@ jobs:
       contents: read
       packages: read
     env:
-      O: ghcr.io/${{ github.repository_owner }}
+      O: ghcr.io/${{ env.OWNER }}
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       - name: Install trivy (pinned + checksum-verified)
