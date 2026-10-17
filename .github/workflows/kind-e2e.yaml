@@ -32,27 +32,9 @@ on:
       - 'auth-service/Dockerfile'
       - 'Makefile'
       - '.github/workflows/kind-e2e.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'deploy/helm/**'
-      - 'deploy/local/**'
-      - 'scripts/verify-decisions.sh'   # Phase 31 checks the decision log with it
-      - 'k8s/**'
-      # Everything deploy/local/up.sh builds an image from — internal/ciguard
-      # fails if a build input stops triggering this workflow (B28.198).
-      - 'cmd/**'
-      - 'internal/**'
-      - 'migrations/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Dockerfile.control-plane'
-      - 'osb/**'
-      - 'auth-service/src/**'
-      - 'auth-service/Cargo.*'
-      - 'auth-service/Dockerfile'
-      - 'Makefile'
-      - '.github/workflows/kind-e2e.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
   workflow_dispatch:
 
 concurrency:

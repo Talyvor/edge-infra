@@ -13,11 +13,9 @@ on:
     paths:
       - 'k8s/policies/**'
       - '.github/workflows/policy-test.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'k8s/policies/**'
-      - '.github/workflows/policy-test.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
 
 jobs:
   kyverno:

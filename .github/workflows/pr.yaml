@@ -1,0 +1,140 @@
+name: PR
+
+# Every pull-request check, in one workflow with no path filter, so `pr-ok` can be
+# a required check (B33.2). A path-filtered workflow that does not run leaves a
+# required check pending for ever, and a `needs:` job sees only its own workflow.
+#
+# `changes` diffs the pull request against its base and, for each workflow below,
+# matches the files against that workflow's own `on.push.paths` — the list its
+# pull_request filter repeated until B33.2 — so each one runs on exactly the pull
+# requests it ran on before. A job skipped by its `if:` counts as passed. Check
+# names are "<job> / <check>", so the ones repeated across files no longer clash.
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      areas: ${{ steps.diff.outputs.areas }}
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          fetch-depth: 0
+      - id: diff
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+          AREAS: >-
+            deploy-test images issuer-test kind-backup kind-cutover kind-datastores kind-e2e kind-install-guide kind-observability kind-rollback osb-test policy-test release test
+        run: |
+          set -euo pipefail
+          # --no-renames lists a rename as its old and its new path, as GitHub's filter does.
+          git diff --no-renames --name-only "$BASE...$HEAD" > "$RUNNER_TEMP/changed"
+          echo "changed files:"; sed 's/^/  /' "$RUNNER_TEMP/changed"
+          hit=()
+          for wf in $AREAS; do
+            globs=$(yq '.on.push.paths[]' ".github/workflows/$wf.yaml")
+            [ -n "$globs" ] || { echo "::error::$wf.yaml has no on.push.paths"; exit 1; }
+            # GitHub's filter syntax: `**` crosses '/', `*` does not. Anything else is refused, not approximated.
+            if grep -q '[][?+!@{}]' <<<"$globs"; then echo "::error::$wf.yaml uses a path filter this job does not model"; exit 1; fi
+            re=$(sed -e 's/[.^$()|\\]/\\&/g' -e 's/\*\*/@/g' -e 's/\*/[^\/]*/g' -e 's/@/.*/g' <<<"$globs" | paste -sd'|' -)
+            if grep -qE "^($re)\$" "$RUNNER_TEMP/changed"; then hit+=("$wf"); fi
+          done
+          echo "areas: ${hit[*]:-none}"
+          echo "areas=$(jq -cn '$ARGS.positional' --args ${hit[@]+"${hit[@]}"})" >> "$GITHUB_OUTPUT"
+
+  deploy-test:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'deploy-test')
+    uses: ./.github/workflows/deploy-test.yaml
+
+  images:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'images')
+    permissions:
+      contents: read
+      packages: write
+      # its sign job signs keylessly with the job's OIDC token.
+      id-token: write
+    uses: ./.github/workflows/images.yaml
+
+  issuer-test:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'issuer-test')
+    uses: ./.github/workflows/issuer-test.yaml
+
+  kind-backup:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-backup')
+    uses: ./.github/workflows/kind-backup.yaml
+
+  kind-cutover:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-cutover')
+    uses: ./.github/workflows/kind-cutover.yaml
+
+  kind-datastores:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-datastores')
+    uses: ./.github/workflows/kind-datastores.yaml
+
+  kind-e2e:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-e2e')
+    uses: ./.github/workflows/kind-e2e.yaml
+
+  kind-install-guide:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-install-guide')
+    uses: ./.github/workflows/kind-install-guide.yaml
+
+  kind-observability:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-observability')
+    uses: ./.github/workflows/kind-observability.yaml
+
+  kind-rollback:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'kind-rollback')
+    uses: ./.github/workflows/kind-rollback.yaml
+
+  osb-test:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'osb-test')
+    uses: ./.github/workflows/osb-test.yaml
+
+  policy-test:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'policy-test')
+    uses: ./.github/workflows/policy-test.yaml
+
+  release:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'release')
+    permissions:
+      # its publish job, which runs only for a v* tag, writes the GitHub release.
+      contents: write
+      packages: write
+      id-token: write
+    uses: ./.github/workflows/release.yaml
+
+  test:
+    needs: changes
+    if: contains(fromJSON(needs.changes.outputs.areas), 'test')
+    uses: ./.github/workflows/test.yaml
+
+  pr-ok:
+    if: always()
+    needs: [changes, deploy-test, images, issuer-test, kind-backup, kind-cutover, kind-datastores, kind-e2e, kind-install-guide, kind-observability, kind-rollback, osb-test, policy-test, release, test]
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.key): \(.value.result)"' <<<"$NEEDS"
+          jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS" > /dev/null \
+            || { echo "::error::a pull-request check did not pass"; exit 1; }

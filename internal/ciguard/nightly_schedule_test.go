@@ -58,6 +58,9 @@ func scheduleProblem(name string, wf workflowFile) string {
 func TestEveryWorkflowRunsNightly(t *testing.T) {
 	var bad []string
 	for name, raw := range allWorkflows(t, repoRoot(t)) {
+		if name == "pr.yaml" {
+			continue // runs only on pull requests; every workflow it calls runs nightly itself (B33.2)
+		}
 		if p := scheduleProblem(name, parseWorkflow(t, name, raw)); p != "" {
 			bad = append(bad, p)
 		}
