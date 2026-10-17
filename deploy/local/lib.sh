@@ -44,15 +44,18 @@ ATTACKER_IMAGE="${ATTACKER_IMAGE:-curlimages/curl:8.11.1}"
 # request headers so the auth-service's injected identity headers are visible.
 WHOAMI_IMAGE="${WHOAMI_IMAGE:-traefik/whoami:v1.10.4}"
 DEX_IMAGE="${DEX_IMAGE:-ghcr.io/dexidp/dex:v2.41.1}"
-# Signed-image admission (Phase 26), both from main's images.yaml run at 608373a.
-# SIGNED_IMAGE is a multi-arch image that run signed; UNSIGNED_IMAGE is the
-# per-arch auth-service intermediate it merged into the signed index, which
-# nothing signs.
-# Built and signed before 12 Oct 2026, when this repository moved from gaboracnicolai to the Talyvor
-# organisation: ghcr.io/gaboracnicolai, signed by gaboracnicolai/edge-infra, which the policy's
-# before-the-move rule still checks. Move them to a ghcr.io/talyvor main build, and drop that rule.
-SIGNED_IMAGE="${SIGNED_IMAGE:-ghcr.io/gaboracnicolai/edge-osb:608373ac9acc3dafc036da69cb2ef7251182db6d}"
-UNSIGNED_IMAGE="${UNSIGNED_IMAGE:-ghcr.io/gaboracnicolai/auth-service:608373ac9acc3dafc036da69cb2ef7251182db6d-amd64}"
+# Signed-image admission (Phase 26): one pair per signer generation, each from a
+# main images.yaml run. *SIGNED_IMAGE is a multi-arch image that run signed;
+# *UNSIGNED_IMAGE is the per-arch auth-service intermediate it merged into the
+# signed index, which nothing signs.
+# Built under the Talyvor organisation (fe80ad1): ghcr.io/talyvor, signed by Talyvor/edge-infra.
+SIGNED_IMAGE="${SIGNED_IMAGE:-ghcr.io/talyvor/edge-osb:fe80ad1d40d2eb2a624ae2a128a780ec640654ee}"
+UNSIGNED_IMAGE="${UNSIGNED_IMAGE:-ghcr.io/talyvor/auth-service:fe80ad1d40d2eb2a624ae2a128a780ec640654ee-amd64}"
+# Built before 12 Oct 2026, when this repository moved from gaboracnicolai to the Talyvor
+# organisation (608373a): ghcr.io/gaboracnicolai, signed by gaboracnicolai/edge-infra, which
+# the policy's before-the-move rule checks. Drop this pair when that rule goes.
+OLD_SIGNED_IMAGE="${OLD_SIGNED_IMAGE:-ghcr.io/gaboracnicolai/edge-osb:608373ac9acc3dafc036da69cb2ef7251182db6d}"
+OLD_UNSIGNED_IMAGE="${OLD_UNSIGNED_IMAGE:-ghcr.io/gaboracnicolai/auth-service:608373ac9acc3dafc036da69cb2ef7251182db6d-amd64}"
 
 # SCIM bearer token the local issuer accepts (Phase 5 secret, Phase 18 client).
 SCIM_TOKEN="local-dev-scim-token-0123456789abcdef"

@@ -2240,12 +2240,11 @@ phase25_default_jwt_osb() {
 # a release tag. Kyverno fetches the signature from ghcr and checks it against
 # the public Rekor log. Both Deployments have 0 replicas: the check is admission,
 # so nothing has to pull or run.
-phase26_signed_images() {
-  section "PHASE 26 — an unsigned first-party image is refused at admission (red-first)"
-  k apply -f "$REPO_ROOT/k8s/policies/verify-image-signatures.yaml"
-  k wait --for=condition=Ready clusterpolicy/verify-image-signatures --timeout=120s >/dev/null \
-    || die "PHASE26 FAIL: clusterpolicy/verify-image-signatures never became Ready"
-  k create namespace signed-images --dry-run=client -o yaml | k apply -f - >/dev/null
+# phase26_pair <generation> <signed image> <unsigned image> — RED, the ghcr.io:443
+# respelling, and GREEN for one signer generation.
+phase26_pair() {
+  local gen="$1" SIGNED_IMAGE="$2" UNSIGNED_IMAGE="$3"
+  section "PHASE 26 — $gen"
   k -n signed-images delete deploy unsigned respelled signed --ignore-not-found >/dev/null
 
   section "RED — a Deployment of an unsigned image MUST be DENIED"
@@ -2257,29 +2256,39 @@ phase26_signed_images() {
     k -n signed-images delete deploy unsigned --ignore-not-found >/dev/null 2>&1 || true
     i=$((i + 1)); sleep 3
   done
-  [ -n "$denied" ] || die "PHASE26 FAIL: the unsigned image was ADMITTED: $out"
+  [ -n "$denied" ] || die "PHASE26 FAIL ($gen): the unsigned image was ADMITTED: $out"
   echo "  Kyverno denial:"; printf '%s\n' "$denied" | fold -s -w 96 | sed 's/^/    /'
   # Denied for the missing signature, not because ghcr or Rekor was unreachable.
   has "$denied" "no signatures found" \
-    || die "PHASE26 FAIL: denied, but not for a missing signature — see the denial above"
-  ok "RED proven — Kyverno DENIED the unsigned image: no signatures found"
+    || die "PHASE26 FAIL ($gen): denied, but not for a missing signature — see the denial above"
+  ok "[$gen] RED proven — Kyverno DENIED the unsigned image: no signatures found"
 
   section "RED — the same image with the registry spelled ghcr.io:443 MUST be DENIED too"
   out="$(k -n signed-images create deployment respelled --image="${UNSIGNED_IMAGE/ghcr.io/ghcr.io:443}" --replicas=0 2>&1 || true)"
   echo "  Kyverno denial:"; printf '%s\n' "$out" | fold -s -w 96 | sed 's/^/    /'
   has "$out" first-party-images-spelled-canonically \
-    || die "PHASE26 FAIL: a ghcr.io:443 spelling was not refused — it would skip the signature check"
-  ok "RED proven — a respelled registry does not skip the check"
+    || die "PHASE26 FAIL ($gen): a ghcr.io:443 spelling was not refused — it would skip the signature check"
+  ok "[$gen] RED proven — a respelled registry does not skip the check"
 
   section "GREEN — a Deployment of a signed main build is admitted, pinned to the digest Kyverno verified"
   log "image: $SIGNED_IMAGE"
   local img
   img="$(k -n signed-images create deployment signed --image="$SIGNED_IMAGE" --replicas=0 \
     -o jsonpath='{.spec.template.spec.containers[0].image}' 2>&1)" \
-    || die "PHASE26 FAIL: the signed image was refused: $img"
+    || die "PHASE26 FAIL ($gen): the signed image was refused: $img"
   echo "  admitted as: $img"
-  has "$img" "@sha256:" || die "PHASE26 FAIL: admitted without a digest — Kyverno did not verify it"
-  ok "GREEN — the signed image was admitted and pinned to its digest"
+  has "$img" "@sha256:" || die "PHASE26 FAIL ($gen): admitted without a digest — Kyverno did not verify it"
+  ok "[$gen] GREEN — the signed image was admitted and pinned to its digest"
+}
+
+phase26_signed_images() {
+  section "PHASE 26 — an unsigned first-party image is refused at admission (red-first)"
+  k apply -f "$REPO_ROOT/k8s/policies/verify-image-signatures.yaml"
+  k wait --for=condition=Ready clusterpolicy/verify-image-signatures --timeout=120s >/dev/null \
+    || die "PHASE26 FAIL: clusterpolicy/verify-image-signatures never became Ready"
+  k create namespace signed-images --dry-run=client -o yaml | k apply -f - >/dev/null
+  phase26_pair "ghcr.io/talyvor (signed by Talyvor/edge-infra)" "$SIGNED_IMAGE" "$UNSIGNED_IMAGE"
+  phase26_pair "ghcr.io/gaboracnicolai (before the move)" "$OLD_SIGNED_IMAGE" "$OLD_UNSIGNED_IMAGE"
 
   k delete namespace signed-images --wait=false >/dev/null
   ok "Phase 26 verified — an unsigned first-party image is refused at admission, a signed one runs pinned to its digest"
