@@ -21,6 +21,8 @@ jobs:
   kyverno:
     runs-on: ubuntu-latest
     steps:
+      - name: B33.2 demo — fails on purpose
+        run: exit 1
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       # ⚠ PINNED. This step used to resolve `releases/latest` at run time, while
       # every GitHub Action in this repo is pinned to a full SHA. A policy test
