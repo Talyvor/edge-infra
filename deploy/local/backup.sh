@@ -171,7 +171,8 @@ spec:
           image: edge-control-plane:$IMAGE_TAG
           imagePullPolicy: Never
           envFrom: [{ secretRef: { name: $RELEASE } }]
-          env: [{ name: XDS_RECONCILE_INTERVAL_MS, value: "2000" }]
+          # No Envoy connects here (backup only), so xDS runs in its explicit dev mode.
+          env: [{ name: XDS_RECONCILE_INTERVAL_MS, value: "2000" }, { name: XDS_DEV_INSECURE, value: "true" }]
           securityContext: { allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: { drop: ["ALL"] } }
 EOF
   wait_rollout deploy/edge-control-plane "$NS" 180s
