@@ -11,7 +11,7 @@ name: PR
 # names are "<job> / <check>", so the ones repeated across files no longer clash.
 on:
   pull_request:
-    branches: [main]
+    branches: [main, b33-2-demo-base]  # throwaway, B33.2 demo only
 
 jobs:
   changes:
