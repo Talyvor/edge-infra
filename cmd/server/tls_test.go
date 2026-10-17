@@ -57,34 +57,34 @@ func selfSignedCert(t *testing.T) (certPath, keyPath, caPath string) {
 }
 
 func TestBuildTLSCreds_NoCert_ReturnsNil(t *testing.T) {
-	creds, err := buildTLSCreds("", "", "")
+	creds, err := buildTLSCreds("", "", "", true)
 	require.NoError(t, err)
 	assert.Nil(t, creds, "empty certFile must return nil creds (plaintext mode)")
 }
 
 func TestBuildTLSCreds_CertWithoutKey_Errors(t *testing.T) {
-	_, err := buildTLSCreds("/some/cert.pem", "", "")
+	_, err := buildTLSCreds("/some/cert.pem", "", "", true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "XDS_TLS_KEY")
 }
 
 func TestBuildTLSCreds_ValidCertKey_ReturnsCreds(t *testing.T) {
 	certPath, keyPath, _ := selfSignedCert(t)
-	creds, err := buildTLSCreds(certPath, keyPath, "")
+	creds, err := buildTLSCreds(certPath, keyPath, "", true)
 	require.NoError(t, err)
 	require.NotNil(t, creds)
 	assert.Equal(t, "tls", creds.Info().SecurityProtocol)
 }
 
 func TestBuildTLSCreds_BadCertFile_Errors(t *testing.T) {
-	_, err := buildTLSCreds("/nonexistent/cert.pem", "/nonexistent/key.pem", "")
+	_, err := buildTLSCreds("/nonexistent/cert.pem", "/nonexistent/key.pem", "", true)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "load server keypair")
 }
 
 func TestBuildTLSCreds_WithCA_ReturnsMTLSCreds(t *testing.T) {
 	certPath, keyPath, caPath := selfSignedCert(t)
-	creds, err := buildTLSCreds(certPath, keyPath, caPath)
+	creds, err := buildTLSCreds(certPath, keyPath, caPath, false)
 	require.NoError(t, err)
 	require.NotNil(t, creds, "mTLS creds must not be nil")
 	assert.Equal(t, "tls", creds.Info().SecurityProtocol)
@@ -92,7 +92,16 @@ func TestBuildTLSCreds_WithCA_ReturnsMTLSCreds(t *testing.T) {
 
 func TestBuildTLSCreds_BadCAFile_Errors(t *testing.T) {
 	certPath, keyPath, _ := selfSignedCert(t)
-	_, err := buildTLSCreds(certPath, keyPath, "/nonexistent/ca.crt")
+	_, err := buildTLSCreds(certPath, keyPath, "/nonexistent/ca.crt", false)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "read CA file")
+}
+
+func TestBuildTLSCreds_WithoutMutualTLS_RefusedOutsideDevMode(t *testing.T) {
+	certPath, keyPath, _ := selfSignedCert(t)
+	for _, c := range [][3]string{{"", "", ""}, {certPath, keyPath, ""}} {
+		_, err := buildTLSCreds(c[0], c[1], c[2], false)
+		require.Error(t, err, "plaintext or server-only TLS must be refused without XDS_DEV_INSECURE")
+		assert.Contains(t, err.Error(), "XDS_DEV_INSECURE")
+	}
 }

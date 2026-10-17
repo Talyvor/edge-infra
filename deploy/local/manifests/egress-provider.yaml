@@ -33,6 +33,7 @@ spec:
       securityContext: {runAsUser: 1000, runAsGroup: 1000, runAsNonRoot: true}
       containers:
         - name: llm
+          securityContext: {allowPrivilegeEscalation: false}
           image: __WHOAMI__
           args: ["--port", "8443", "--cert", "/tls/tls.crt", "--key", "/tls/tls.key", "--name", "mock-llm"]
           ports:
@@ -76,6 +77,7 @@ spec:
   securityContext: {runAsUser: 1000, runAsGroup: 1000, runAsNonRoot: true}
   containers:
     - name: agent
+      securityContext: {allowPrivilegeEscalation: false}
       image: __CURL__
       command: ["sleep", "infinity"]
       volumeMounts:

@@ -59,7 +59,7 @@ func TestXDSRealEnvoyTLSVersion(t *testing.T) {
 	creds, err := buildTLSCreds(
 		writeTemp(t, dir, "server.crt", srvCertPEM),
 		writeTemp(t, dir, "server.key", srvKeyPEM),
-		"",
+		"", true, // server-only TLS is a dev-mode configuration
 	)
 	if err != nil {
 		t.Fatalf("buildTLSCreds: %v", err)

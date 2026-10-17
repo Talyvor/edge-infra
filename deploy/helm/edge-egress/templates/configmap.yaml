@@ -124,7 +124,7 @@ data:
                           port_value: {{ .Values.xds.controlPlanePort }}
           {{- if .Values.xds.tls.enabled }}
           # xDS transport mTLS to the control plane. The client cert (mounted
-          # from envoy-xds-client-tls-secret at xds.tls.mountPath) satisfies the
+          # from xds.tls.existingSecret at xds.tls.mountPath) satisfies the
           # server's RequireAndVerifyClientCert; the server is verified by CA +
           # SAN. SAN is pinned to controlPlaneHost — the control-plane server
           # cert SAN (edge-control-plane's certificate.yaml dnsNames) MUST equal this

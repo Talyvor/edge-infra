@@ -27,9 +27,10 @@ spec:
   template:
     metadata:
       labels: { app: whoami, part-of: edge-local }
-    spec:
+    spec:  # nosemgrep: run-as-non-root -- runs as root: whoami binds port 80, the Service's numeric targetPort
       containers:
         - name: whoami
+          securityContext: {allowPrivilegeEscalation: false}
           image: traefik/whoami:v1.10.4
           args: ["--port", "80"]
           ports: [{ name: http, containerPort: 80 }]
@@ -58,8 +59,10 @@ metadata:
   namespace: tenant-secure
   labels: { app: minter, part-of: edge-local }
 spec:
+  securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101}
   containers:
     - name: curl
+      securityContext: {allowPrivilegeEscalation: false}
       image: curlimages/curl:8.11.1
       command: ["sleep", "infinity"]
       resources:

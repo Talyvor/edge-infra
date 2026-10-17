@@ -1,0 +1,31 @@
+{{- if .Values.certificate.create }}
+{{- $svc := include "edge-ratelimit.fullname" . }}
+# The rate-limit service's gRPC certificate, issued into tls.existingSecret from
+# certificate.issuerRef (by default the edge-pki chart's internal CA). Its ca.crt
+# is also the CA a client certificate must come from (Envoy's ext_authz client
+# certificate); client auth lets `helm test` call the service with it.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: {{ $svc }}-tls
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edge-ratelimit.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.tls.existingSecret }}
+  duration: {{ .Values.certificate.duration }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+  dnsNames:
+    {{- with .Values.certificate.dnsNames }}
+    {{- toYaml . | nindent 4 }}
+    {{- else }}
+    - {{ $svc }}
+    - {{ $svc }}.{{ .Release.Namespace }}.svc
+    - {{ $svc }}.{{ .Release.Namespace }}.svc.cluster.local
+    {{- end }}
+  issuerRef:
+    {{- toYaml .Values.certificate.issuerRef | nindent 4 }}
+  usages:
+    - server auth
+    - client auth
+{{- end }}

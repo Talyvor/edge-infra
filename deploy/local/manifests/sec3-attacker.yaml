@@ -29,9 +29,11 @@ spec:
     metadata:
       labels: { app: attacker, part-of: edge-local }
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 100, runAsGroup: 101}
       # hostNetwork intentionally omitted (false) — the source must be a POD IP.
       containers:
         - name: attacker
+          securityContext: {allowPrivilegeEscalation: false}
           image: curlimages/curl:8.11.1
           command: ["sleep", "infinity"]
           resources:

@@ -15,9 +15,11 @@ spec:
       labels:
         app: otel-collector
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001}
       serviceAccountName: otel-collector
       containers:
         - name: otel-collector
+          securityContext: {allowPrivilegeEscalation: false}
           image: otel/opentelemetry-collector-contrib:0.102.0
           args:
             - "--config=/etc/otel/collector-config.yaml"

@@ -33,6 +33,9 @@ type Config struct {
 	TLSCertFile string
 	TLSKeyFile  string
 	TLSCAFile   string
+	// DevInsecure (XDS_DEV_INSECURE=true) lets the xDS server run without mutual
+	// TLS for local development; otherwise cert, key and client CA are required.
+	DevInsecure bool
 
 	// Gateway rate limiting (Envoy local_ratelimit, a per-listener token
 	// bucket served via LDS). Fail-open by design: unlike auth, a limiter
@@ -103,6 +106,7 @@ func FromEnv() (*Config, error) {
 		TLSCertFile:       os.Getenv("XDS_TLS_CERT"),
 		TLSKeyFile:        os.Getenv("XDS_TLS_KEY"),
 		TLSCAFile:         os.Getenv("XDS_TLS_CA"),
+		DevInsecure:       os.Getenv("XDS_DEV_INSECURE") == "true",
 		AdminAddr:         getenv("XDS_ADMIN_ADDR", ":18002"),
 		AdminAPIKey:       os.Getenv("XDS_ADMIN_API_KEY"),
 	}

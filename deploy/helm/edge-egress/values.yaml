@@ -30,12 +30,22 @@ xds:
   controlPlanePort: 18000
   tls:
     # mTLS to the control-plane xDS server, which requires client certs
-    # unconditionally — the same client certificate edge-proxy uses, so install
-    # this chart in edge-proxy's namespace (the control plane's NetworkPolicy
-    # admits xDS from that namespace).
+    # unconditionally and serves this chart's certificate (envoy-egress-xds-client,
+    # issued below) egress nodes only. Install this chart in edge-proxy's
+    # namespace (the control plane's NetworkPolicy admits xDS from that namespace).
     enabled: true
-    existingSecret: envoy-xds-client-tls-secret
+    existingSecret: envoy-egress-xds-client-tls-secret
     mountPath: /etc/xds-client-tls
+
+# The xDS client certificate in xds.tls.existingSecret, issued by cert-manager
+# from the edge-pki chart's internal CA. create: false to bring the Secret yourself.
+certificate:
+  create: true
+  issuerRef:
+    name: edge-internal-ca
+    kind: ClusterIssuer
+  duration: 2160h   # 90 days
+  renewBefore: 360h # 15 days
 
 # ext_authz client certificate (edge-egress -> auth-service mTLS), used by
 # keyless destinations (B28.224): their requests are checked by the auth-service

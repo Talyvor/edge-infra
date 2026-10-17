@@ -19,8 +19,10 @@ spec:
   template:
     metadata: { labels: { app: echo, part-of: edge-local } }
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534, runAsGroup: 65534}
       containers:
         - name: echo
+          securityContext: {allowPrivilegeEscalation: false}
           image: hashicorp/http-echo:0.2.3
           args: ["-text=TENANT-A-BACKEND", "-listen=:5678"]
           ports: [{ name: http, containerPort: 5678 }]
@@ -51,8 +53,10 @@ spec:
   template:
     metadata: { labels: { app: echo, part-of: edge-local } }
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534, runAsGroup: 65534}
       containers:
         - name: echo
+          securityContext: {allowPrivilegeEscalation: false}
           image: hashicorp/http-echo:0.2.3
           args: ["-text=TENANT-B-BACKEND", "-listen=:5678"]
           ports: [{ name: http, containerPort: 5678 }]

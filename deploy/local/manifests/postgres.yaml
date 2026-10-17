@@ -44,9 +44,10 @@ spec:
   template:
     metadata:
       labels: { app: postgres, part-of: edge-local }
-    spec:
+    spec:  # nosemgrep: run-as-non-root -- runs as root: the official entrypoint chowns the data directory as root, then drops to the postgres user itself
       containers:
         - name: postgres
+          securityContext: {allowPrivilegeEscalation: false}
           image: postgres:16-alpine
           envFrom:
             - secretRef: { name: postgres }
