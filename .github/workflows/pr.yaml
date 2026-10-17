@@ -32,9 +32,10 @@ jobs:
             deploy-test images issuer-test kind-backup kind-cutover kind-datastores kind-e2e kind-install-guide kind-observability kind-rollback osb-test policy-test release test
         run: |
           set -euo pipefail
-          # --no-renames lists a rename as its old and its new path, as GitHub's filter does.
-          git diff --no-renames --name-only "$BASE...$HEAD" > "$RUNNER_TEMP/changed"
-          echo "changed files:"; sed 's/^/  /' "$RUNNER_TEMP/changed"
+          # --no-renames lists a rename as its old and its new path, as GitHub's filter does;
+          # -z with quotePath off keeps an unusual file name verbatim instead of quoted.
+          git -c core.quotePath=false diff -z --no-renames --name-only "$BASE...$HEAD" > "$RUNNER_TEMP/changed"
+          echo "changed files:"; tr '\0' '\n' < "$RUNNER_TEMP/changed" | sed 's/^/  /'
           hit=()
           for wf in $AREAS; do
             globs=$(yq '.on.push.paths[]' ".github/workflows/$wf.yaml")
@@ -42,7 +43,7 @@ jobs:
             # GitHub's filter syntax: `**` crosses '/', `*` does not. Anything else is refused, not approximated.
             if grep -q '[][?+!@{}]' <<<"$globs"; then echo "::error::$wf.yaml uses a path filter this job does not model"; exit 1; fi
             re=$(sed -e 's/[.^$()|\\]/\\&/g' -e 's/\*\*/@/g' -e 's/\*/[^\/]*/g' -e 's/@/.*/g' <<<"$globs" | paste -sd'|' -)
-            if grep -qE "^($re)\$" "$RUNNER_TEMP/changed"; then hit+=("$wf"); fi
+            if grep -zqE "^($re)\$" "$RUNNER_TEMP/changed"; then hit+=("$wf"); fi
           done
           echo "areas: ${hit[*]:-none}"
           echo "areas=$(jq -cn '$ARGS.positional' --args ${hit[@]+"${hit[@]}"})" >> "$GITHUB_OUTPUT"
