@@ -87,10 +87,12 @@ rateLimitService:
   address: edge-ratelimit.infra.svc.cluster.local
   port: 8082
   domain: edge
-  # Upstream (m)TLS cert paths AS MOUNTED ON THE ENVOY (edge-proxy) POD.
-  caFile: ""
-  certFile: ""
-  keyFile: ""
+  # Upstream mTLS cert paths AS MOUNTED ON THE ENVOY (edge-proxy) POD. The
+  # edge-ratelimit server requires a client certificate from the internal CA, so
+  # the default is Envoy's ext_authz client certificate (extAuthz above).
+  caFile: /etc/authz-client-tls/ca.crt
+  certFile: /etc/authz-client-tls/tls.crt
+  keyFile: /etc/authz-client-tls/tls.key
 
 # Gateway access logs and tracing. Every listener ALWAYS writes one JSON access
 # line per request to the edge-proxy's stdout (request_id, trace_id, status,

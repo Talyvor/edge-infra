@@ -24,6 +24,25 @@ redis:
 
 # Pull secret(s) for private images, wired onto the ServiceAccount so pods (and
 # hook Jobs) can pull without a manual `kubectl patch sa`. e.g. [{name: ghcr}].
+# Mutual TLS on the gRPC port: only a client holding a certificate from the
+# edge internal CA is served (Envoy presents its ext_authz client certificate,
+# the control plane's rateLimitService.*File). The server will not start without it.
+tls:
+  existingSecret: edge-ratelimit-tls-secret
+  mountPath: /etc/ratelimit-tls
+
+# The certificate in tls.existingSecret, issued by cert-manager from the edge-pki
+# chart's internal CA. create: false to bring the Secret yourself (tls.crt,
+# tls.key and the client CA as ca.crt). dnsNames: [] = this chart's Service names.
+certificate:
+  create: true
+  issuerRef:
+    name: edge-internal-ca
+    kind: ClusterIssuer
+  dnsNames: []
+  duration: 24h
+  renewBefore: 8h
+
 imagePullSecrets: []
 
 serviceAccount:

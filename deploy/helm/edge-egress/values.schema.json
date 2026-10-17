@@ -90,6 +90,45 @@
       },
       "additionalProperties": false
     },
+    "certificate": {
+      "type": "object",
+      "properties": {
+        "create": {
+          "type": "boolean"
+        },
+        "issuerRef": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1
+            },
+            "kind": {
+              "enum": [
+                "ClusterIssuer",
+                "Issuer"
+              ]
+            },
+            "group": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "name"
+          ],
+          "additionalProperties": false
+        },
+        "duration": {
+          "type": "string",
+          "minLength": 1
+        },
+        "renewBefore": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
     "extAuthz": {
       "type": "object",
       "properties": {

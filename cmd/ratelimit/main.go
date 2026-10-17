@@ -55,11 +55,22 @@ func run(log *slog.Logger) error {
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
+	creds, err := serverCreds(os.Getenv("RL_TLS_CERT"), os.Getenv("RL_TLS_KEY"), os.Getenv("RL_TLS_CA"), os.Getenv("RL_DEV_INSECURE") == "true")
+	if err != nil {
+		return err
+	}
+	var opts []grpc.ServerOption
+	if creds != nil {
+		opts = append(opts, grpc.Creds(creds))
+	} else {
+		log.Warn("RL_DEV_INSECURE: ratelimit gRPC running WITHOUT TLS — any client can connect")
+	}
+
 	lis, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		return err
 	}
-	grpcSrv := grpc.NewServer()
+	grpcSrv := grpc.NewServer(opts...)
 	rlv3.RegisterRateLimitServiceServer(grpcSrv, svc)
 
 	healthSrv := &http.Server{Addr: healthAddr, Handler: healthMux(), ReadHeaderTimeout: 10 * time.Second}

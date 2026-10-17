@@ -60,6 +60,12 @@ spec:
               value: {{ .Values.config.rpm | quote }}
             - name: RL_BURST
               value: {{ .Values.config.burst | quote }}
+            - name: RL_TLS_CERT
+              value: {{ .Values.tls.mountPath }}/tls.crt
+            - name: RL_TLS_KEY
+              value: {{ .Values.tls.mountPath }}/tls.key
+            - name: RL_TLS_CA
+              value: {{ .Values.tls.mountPath }}/ca.crt
             {{- if .Values.redis.addr }}
             - name: REDIS_ADDR
               value: {{ .Values.redis.addr | quote }}
@@ -71,6 +77,10 @@ spec:
                   name: {{ .Values.redis.existingSecret }}
                   key: {{ .Values.redis.secretKey }}
             {{- end }}
+          volumeMounts:
+            - name: tls
+              mountPath: {{ .Values.tls.mountPath }}
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /readyz
@@ -85,3 +95,7 @@ spec:
             periodSeconds: 10
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: tls
+          secret:
+            secretName: {{ .Values.tls.existingSecret }}

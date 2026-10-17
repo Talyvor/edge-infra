@@ -113,6 +113,19 @@ jobs:
           go install golang.org/x/vuln/cmd/govulncheck@v1.6.0
           "$(go env GOPATH)/bin/govulncheck" ./...
 
+  # Semgrep's managed default ruleset, pinned by version and digest as Track's,
+  # Docs' and talyvor-code's CI are (B42.9). Fails on ERROR severity; every other
+  # finding it reports is fixed or carries a nosemgrep reason in place.
+  semgrep:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: semgrep/semgrep:1.165.0@sha256:f4791a54c891eabe1188248135574e6e03dfc31dfd3f3b747c7bec7079bfed1b
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+      - run: semgrep scan --config p/default --metrics=off --severity ERROR --error --quiet
+
   # The same gate for auth-service (B28.261): cargo-audit checks Cargo.lock
   # against the RustSec advisory DB and fails on any vulnerability. The binary
   # is the upstream release, pinned by version and sha256; the DB is fetched

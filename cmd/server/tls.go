@@ -10,9 +10,14 @@ import (
 )
 
 // buildTLSCreds constructs gRPC transport credentials from cert-manager-issued files.
-// Returns nil when certFile is empty (plaintext mode). Requires both certFile and keyFile.
-// Setting caFile additionally enables mTLS (RequireAndVerifyClientCert).
-func buildTLSCreds(certFile, keyFile, caFile string) (credentials.TransportCredentials, error) {
+// Outside devInsecure it requires certFile, keyFile and caFile: mutual TLS
+// (RequireAndVerifyClientCert) is the only mode a deployment may run in. With
+// devInsecure an empty certFile returns nil (plaintext) and an empty caFile
+// gives server-only TLS.
+func buildTLSCreds(certFile, keyFile, caFile string, devInsecure bool) (credentials.TransportCredentials, error) {
+	if !devInsecure && (certFile == "" || caFile == "") {
+		return nil, fmt.Errorf("XDS_TLS_CERT, XDS_TLS_KEY and XDS_TLS_CA are required (XDS_DEV_INSECURE=true allows plaintext for local development only)")
+	}
 	if certFile == "" {
 		return nil, nil
 	}

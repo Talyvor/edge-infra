@@ -1,0 +1,24 @@
+{{- if and .Values.certificate.create .Values.xds.tls.enabled }}
+# edge-egress's own client identity to the control plane's xDS server, which
+# serves it only egress nodes ("edge-egress/<pod>") — never a gateway node.
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: envoy-egress-xds-client-cert
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "edge-egress.labels" . | nindent 4 }}
+spec:
+  secretName: {{ .Values.xds.tls.existingSecret }}
+  duration: {{ .Values.certificate.duration }}
+  renewBefore: {{ .Values.certificate.renewBefore }}
+  commonName: envoy-egress-xds-client
+  dnsNames:
+    - envoy-egress-xds-client
+  issuerRef:
+    {{- toYaml .Values.certificate.issuerRef | nindent 4 }}
+  usages:
+    - client auth
+    - digital signature
+    - key encipherment
+{{- end }}

@@ -145,12 +145,13 @@ func run(log *slog.Logger) error {
 		log.Info("ha: running in single-instance mode (set REDIS_ADDR to enable HA)")
 	}
 
-	tlsCreds, err := buildTLSCreds(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCAFile)
+	tlsCreds, err := buildTLSCreds(cfg.TLSCertFile, cfg.TLSKeyFile, cfg.TLSCAFile, cfg.DevInsecure)
 	if err != nil {
 		return fmt.Errorf("tls config: %w", err)
 	}
-	if tlsCreds == nil {
-		log.Warn("xDS gRPC running WITHOUT TLS — set XDS_TLS_CERT/XDS_TLS_KEY to enable")
+	mtls := tlsCreds != nil && cfg.TLSCAFile != ""
+	if !mtls {
+		log.Warn("XDS_DEV_INSECURE: xDS gRPC running WITHOUT mutual TLS — any client can claim any node id")
 	}
 
 	callbacks := &onConnectCallbacks{
@@ -160,7 +161,7 @@ func run(log *slog.Logger) error {
 	}
 
 	xdsSrv := serverv3.NewServer(rootCtx, cache, callbacks)
-	grpcSrv := newGRPCServer(tlsCreds)
+	grpcSrv := newGRPCServer(tlsCreds, mtls)
 	registerXDS(grpcSrv, xdsSrv)
 	// edge-egress's decision log (B28.228) arrives on the same listener, from
 	// Envoys holding an xDS client certificate. Without TLS anyone who can reach
@@ -244,7 +245,9 @@ func run(log *slog.Logger) error {
 	return nil
 }
 
-func newGRPCServer(creds credentials.TransportCredentials) *grpc.Server {
+// newGRPCServer builds the xDS gRPC server. bindNodes refuses every request whose
+// node id the client certificate does not speak for (see nodeauth.go).
+func newGRPCServer(creds credentials.TransportCredentials, bindNodes bool) *grpc.Server {
 	opts := []grpc.ServerOption{
 		grpc.KeepaliveParams(keepalive.ServerParameters{
 			MaxConnectionIdle:     5 * time.Minute,
@@ -260,6 +263,9 @@ func newGRPCServer(creds credentials.TransportCredentials) *grpc.Server {
 	}
 	if creds != nil {
 		opts = append(opts, grpc.Creds(creds))
+	}
+	if bindNodes {
+		opts = append(opts, grpc.UnaryInterceptor(nodeIdentityUnary), grpc.StreamInterceptor(nodeIdentityStream))
 	}
 	return grpc.NewServer(opts...)
 }

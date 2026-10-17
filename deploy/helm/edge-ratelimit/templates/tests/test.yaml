@@ -1,5 +1,6 @@
 # `helm test <release>`: the rate-limit service answers a gRPC call on its
-# Service, the way Envoy calls it — a ShouldRateLimit with an empty request.
+# Service, the way Envoy calls it — a ShouldRateLimit with an empty request over
+# mutual TLS — and refuses the same call in plaintext.
 apiVersion: v1
 kind: Pod
 metadata:
@@ -32,17 +33,30 @@ spec:
         allowPrivilegeEscalation: false
         capabilities:
           drop: ["ALL"]
+      volumeMounts:
+        - name: tls
+          mountPath: /tls
+          readOnly: true
       command: ["sh", "-c"]
       args:
         - |
           set -eu
-          url="http://{{ include "edge-ratelimit.fullname" . }}:{{ .Values.service.grpcPort }}/envoy.service.ratelimit.v3.RateLimitService/ShouldRateLimit"
+          path="{{ include "edge-ratelimit.fullname" . }}:{{ .Values.service.grpcPort }}/envoy.service.ratelimit.v3.RateLimitService/ShouldRateLimit"
           # One gRPC frame holding an empty message: flag 0, length 0. From a file,
           # not stdin, so a retry can send it again.
           printf '\0\0\0\0\0' > /tmp/frame
-          hdrs="$(curl -sS --http2-prior-knowledge -D - -o /dev/null --max-time 10 \
-            --retry 10 --retry-delay 3 --retry-all-errors \
-            -H 'content-type: application/grpc' -H 'te: trailers' --data-binary @/tmp/frame "$url")"
+          grpc() { curl -sS -D - -o /dev/null --max-time 10 \
+            -H 'content-type: application/grpc' -H 'te: trailers' --data-binary @/tmp/frame "$@"; }
+          hdrs="$(grpc --http2 --retry 10 --retry-delay 3 --retry-all-errors \
+            --cacert /tls/ca.crt --cert /tls/tls.crt --key /tls/tls.key "https://$path")"
           echo "$hdrs"
-          printf '%s' "$hdrs" | grep -qi '^grpc-status:' || { echo "FAIL: no gRPC answer from $url"; exit 1; }
-          echo "PASS: the rate-limit service answers gRPC on its Service"
+          printf '%s' "$hdrs" | grep -qi '^grpc-status:' || { echo "FAIL: no gRPC answer from https://$path"; exit 1; }
+          echo "PASS: the rate-limit service answers gRPC over mutual TLS on its Service"
+          if grpc --http2-prior-knowledge "http://$path" 2>&1 | grep -qi '^grpc-status:'; then
+            echo "FAIL: the rate-limit service answered a plaintext call"; exit 1
+          fi
+          echo "PASS: the rate-limit service refuses a plaintext call"
+  volumes:
+    - name: tls
+      secret:
+        secretName: {{ .Values.tls.existingSecret }}

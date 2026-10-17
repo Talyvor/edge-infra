@@ -18,8 +18,10 @@ spec:
     metadata:
       labels: { app: nats, part-of: edge-local }
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 1000, runAsGroup: 1000}
       containers:
         - name: nats
+          securityContext: {allowPrivilegeEscalation: false}
           image: nats:2.10-alpine
           args: ["-js", "-sd", "/data", "-m", "8222"]
           ports:

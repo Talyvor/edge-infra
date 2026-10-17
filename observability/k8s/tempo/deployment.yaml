@@ -17,8 +17,10 @@ spec:
       labels:
         app: tempo
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001, fsGroup: 10001}
       containers:
         - name: tempo
+          securityContext: {allowPrivilegeEscalation: false}
           image: grafana/tempo:2.5.0
           args:
             - "-config.file=/etc/tempo/tempo-config.yaml"

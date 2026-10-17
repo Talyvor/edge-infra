@@ -23,6 +23,7 @@ spec:
   securityContext: {runAsUser: 1000, runAsGroup: 1000, runAsNonRoot: true}
   containers:
     - name: agent
+      securityContext: {allowPrivilegeEscalation: false}
       image: __CURL__
       command: ["sleep", "infinity"]
       env:

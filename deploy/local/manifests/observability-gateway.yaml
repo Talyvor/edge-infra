@@ -22,8 +22,10 @@ spec:
     metadata:
       labels: {app: tenant-a}
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 65534, runAsGroup: 65534}
       containers:
         - name: whoami
+          securityContext: {allowPrivilegeEscalation: false}
           image: traefik/whoami:v1.10.4@sha256:1699d99cb4b9acc17f74ca670b3d8d0b7ba27c948b3445f0593b58ebece92f04
           args: ["--port", "8080"]
           ports:
@@ -142,8 +144,10 @@ spec:
         prometheus.io/port: "9903"
         prometheus.io/path: "/stats/prometheus"
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 101, runAsGroup: 101}
       containers:
         - name: envoy
+          securityContext: {allowPrivilegeEscalation: false}
           image: envoyproxy/envoy:v1.39.2@sha256:460f8c329f24b2e1c7c5af64cb314a6f351ad1c262ba77b135ac46b35ebd5f85
           args: ["-c", "/etc/envoy/bootstrap.yaml", "--log-level", "warn"]
           ports:

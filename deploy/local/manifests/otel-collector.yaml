@@ -50,8 +50,10 @@ spec:
       labels:
         app: otel-collector
     spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 10001, runAsGroup: 10001}
       containers:
         - name: otel-collector
+          securityContext: {allowPrivilegeEscalation: false}
           image: otel/opentelemetry-collector-contrib:0.102.0@sha256:26bce721ca2f83db1c2c4e8873514dfe5b3973401fe88a1208efdc74e32840c1
           args: ["--config=/etc/otel/collector-config.yaml"]
           ports:
