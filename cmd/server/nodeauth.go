@@ -16,26 +16,25 @@ import (
 	"github.com/edge-infra/control-plane/internal/xds"
 )
 
-// The client certificates the charts issue. edge-proxy's Envoys, one per
-// Kubernetes node, share one; edge-egress's share another. A certificate whose
-// DNS SAN is exactly a node id speaks for that node alone.
+// The client certificates the charts issue: edge-proxy's Envoys, one per
+// Kubernetes node, share one; edge-egress's share another. No other certificate
+// from the internal CA speaks for any node.
 const (
 	proxyClientIdentity  = "envoy-xds-client"
 	egressClientIdentity = "envoy-egress-xds-client"
 )
 
 // certAllowsNode reports whether a verified client certificate may speak for
-// the xDS node id: its own name, or the class of node its role serves.
+// the xDS node id: the class of node its role serves.
 // shortcut: edge-proxy nodes share one certificate, so one proxy can still claim
-// another proxy's node id; issue a certificate per node to close that.
+// another proxy's node id; a per-node identity (its own URI SAN) would close that.
 func certAllowsNode(cert *x509.Certificate, nodeID string) bool {
 	if nodeID == "" {
 		return false
 	}
 	for _, name := range cert.DNSNames {
 		switch {
-		case name == nodeID,
-			name == proxyClientIdentity && !xds.IsEgressNode(nodeID),
+		case name == proxyClientIdentity && !xds.IsEgressNode(nodeID),
 			name == egressClientIdentity && xds.IsEgressNode(nodeID):
 			return true
 		}
