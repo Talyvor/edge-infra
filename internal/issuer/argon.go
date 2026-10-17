@@ -77,3 +77,5 @@ func VerifyPassword(encoded, password string) (bool, error) {
 	// the hash matched.
 	return subtle.ConstantTimeCompare(got, want) == 1, nil
 }
+
+// B33.2 demo: an internal-only change; drop with the branch.
