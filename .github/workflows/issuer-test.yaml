@@ -16,14 +16,9 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '.github/workflows/issuer-test.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'internal/issuer/**'
-      - 'cmd/issuer/**'
-      - 'go.mod'
-      - 'go.sum'
-      - '.github/workflows/issuer-test.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
 
 jobs:
   issuer:

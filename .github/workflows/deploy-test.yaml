@@ -15,12 +15,9 @@ on:
       - 'deploy/**'
       - 'Makefile'
       - '.github/workflows/deploy-test.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'deploy/**'
-      - 'Makefile'
-      - '.github/workflows/deploy-test.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
 
 jobs:
   helm:

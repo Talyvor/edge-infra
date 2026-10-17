@@ -33,27 +33,9 @@ on:
       - 'auth-service/Dockerfile'
       - 'Makefile'
       - '.github/workflows/kind-observability.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'deploy/helm/edge-observability/**'
-      - 'deploy/local/observability.sh'
-      - 'deploy/local/manifests/observability-gateway.yaml'
-      - 'deploy/local/lib.sh'
-      # Everything deploy/local/*.sh builds an image from — internal/ciguard
-      # fails if a build input stops triggering a kind workflow (B28.198).
-      - 'cmd/**'
-      - 'internal/**'
-      - 'migrations/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Dockerfile.control-plane'
-      - 'osb/**'
-      - 'auth-service/src/**'
-      - 'auth-service/Cargo.*'
-      - 'auth-service/Dockerfile'
-      - 'Makefile'
-      - '.github/workflows/kind-observability.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
   workflow_dispatch:
 
 concurrency:

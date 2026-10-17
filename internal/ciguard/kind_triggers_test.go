@@ -339,10 +339,14 @@ func collectBuildInputs(t *testing.T, root string, tracked []string, builds []do
 type workflowFile struct {
 	On   map[string]*workflowTrigger `yaml:"on"`
 	Jobs map[string]struct {
+		Uses  string `yaml:"uses"`
 		Steps []struct {
 			Run string `yaml:"run"`
 		} `yaml:"steps"`
 	} `yaml:"jobs"`
+	// CalledByPR: pr.yaml calls this workflow, so its pull requests run on its
+	// on.push.paths (B33.2).
+	CalledByPR bool `yaml:"-"`
 }
 
 // workflowTrigger is one `on:` event: a mapping for push / pull_request, and for
@@ -434,6 +438,17 @@ func kindWorkflows(t *testing.T, root string) map[string]workflowFile {
 			}
 		}
 	}
+	b, err := os.ReadFile(filepath.Join(dir, "pr.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, job := range parseWorkflow(t, "pr.yaml", b).Jobs {
+		name := strings.TrimPrefix(job.Uses, "./.github/workflows/")
+		if wf, ok := out[name]; ok {
+			wf.CalledByPR = true
+			out[name] = wf
+		}
+	}
 	return out
 }
 
@@ -453,6 +468,9 @@ func uncoveredInputs(t *testing.T, name string, wf workflowFile, inputs []buildI
 	var out []string
 	for _, event := range []string{"push", "pull_request"} {
 		trig, ok := wf.On[event]
+		if !ok && event == "pull_request" && wf.CalledByPR {
+			trig, ok = wf.On["push"] // pr.yaml gates it on these paths
+		}
 		if !ok {
 			out = append(out, name+": has no `"+event+"` trigger")
 			continue
@@ -510,8 +528,8 @@ func TestKindWorkflowsTriggerOnEveryImageBuildInput(t *testing.T) {
 	missing = slices.Compact(missing)
 	if len(missing) > 0 {
 		t.Errorf("%d image-build input(s) can change without running the kind workflow that builds "+
-			"and deploys them:\n\t%s\n\nAdd a path filter covering each to that workflow's push AND "+
-			"pull_request triggers.", len(missing), strings.Join(missing, "\n\t"))
+			"and deploys them:\n\t%s\n\nAdd a path filter covering each to that workflow's push trigger "+
+			"(pr.yaml runs pull requests on the same paths).", len(missing), strings.Join(missing, "\n\t"))
 	}
 }
 
@@ -520,7 +538,7 @@ func TestKindWorkflowsTriggerOnEveryImageBuildInput(t *testing.T) {
 // filter that covers it must make the guard report it.
 func TestKindTriggerGuardCatchesARemovedPath(t *testing.T) {
 	root, wfs, inputs := kindTriggerFixture(t)
-	for name := range wfs {
+	for name, wf := range wfs {
 		raw, err := os.ReadFile(filepath.Join(root, ".github", "workflows", name))
 		if err != nil {
 			t.Fatal(err)
@@ -550,6 +568,7 @@ func TestKindTriggerGuardCatchesARemovedPath(t *testing.T) {
 				continue // already uncovered; the guard above reports it
 			}
 			mutated := parseWorkflow(t, name, []byte(strings.Join(kept, "\n")))
+			mutated.CalledByPR = wf.CalledByPR
 			got := strings.Join(uncoveredInputs(t, name, mutated, []buildInput{{origin: in.origin, files: []string{probe}}}), "\n")
 			for _, event := range []string{"push", "pull_request"} {
 				if !strings.Contains(got, name+" on."+event+" misses "+probe) {
