@@ -242,6 +242,20 @@ pull_release_images() {
   done
 }
 
+# kind_load <image> — kind load via an archive of only the nodes' platform. A
+# pulled multi-arch index (IMAGE_SOURCE=registry) holds just this platform's
+# blobs under the containerd image store, and `kind load docker-image` imports
+# with --all-platforms, so ctr fails: "content digest ...: not found".
+kind_load() {
+  local tar rc
+  tar="$(mktemp)"
+  docker save --platform "$(docker version --format '{{.Server.Os}}/{{.Server.Arch}}')" -o "$tar" "$1" \
+    && kind load image-archive --name "$CLUSTER_NAME" "$tar"
+  rc=$?
+  rm -f "$tar"
+  return "$rc"
+}
+
 phase3_images() {
   case "$IMAGE_SOURCE" in
     build)    build_local_images ;;
@@ -261,11 +275,11 @@ phase3_images() {
     "edge-ratelimit:$IMAGE_TAG" "edge-secrets:$IMAGE_TAG" \
     "edge-migrate:$IMAGE_TAG" "edge-osb:$IMAGE_TAG" "auth-service:$IMAGE_TAG" \
     "edge-attest:$IMAGE_TAG"; do
-    kind load docker-image --name "$CLUSTER_NAME" "$img"
+    kind_load "$img" || die "kind load $img failed"
   done
   # Public images: best-effort (the node can still pull them at runtime).
   for img in "$ENVOY_IMAGE" "$BUSYBOX_IMAGE" "$TEST_IMAGE"; do
-    kind load docker-image --name "$CLUSTER_NAME" "$img" \
+    kind_load "$img" \
       || warn "kind load $img failed — node will pull it at runtime"
   done
   ok "images built + loaded"
