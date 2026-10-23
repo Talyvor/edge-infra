@@ -1,6 +1,6 @@
 module github.com/edge-infra/control-plane
 
-go 1.27.2
+go 1.27.3
 
 require (
 	github.com/alicebob/miniredis/v2 v2.38.0
