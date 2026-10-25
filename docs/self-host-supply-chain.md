@@ -89,7 +89,7 @@ What goes into an image is locked as well:
   `gcr.io/distroless/static:nonroot@sha256:…`, so a commit always builds on the
   same bytes. A new base comes in as a commit, and that commit's run scans it.
   `bash deploy/hack/image-scan.sh bases` fails if any `FROM` names a tag alone.
-- **Go 1.27.2** builds every Go binary, from the pinned `golang` image, and
+- **Go 1.27.3** builds every Go binary, from the pinned `golang` image, and
   `go.mod` asks for the same version.
 - **The OSB image installs `osb/requirements.lock`**, which pins every Python
   package to an exact version and hash. pip refuses any package the lock does

@@ -43,7 +43,7 @@ PIN="$(sed -n 's/^  tag: "\([0-9a-f]\{40\}\)".*/\1/p' "$REPO_ROOT/deploy/helm/ed
 PIN_TAG="pin-${PIN:0:7}"
 # The pin's own Dockerfile hard-codes GOARCH=amd64; build its source with the same
 # Go base image main's Dockerfile uses, for whatever arch the kind nodes are.
-PIN_GO_IMAGE="${PIN_GO_IMAGE:-golang:1.27.2-alpine3.24@sha256:85dc1069ac644ea3c527b177303a406eb3358192816cd7f9e5848eb658851673}"
+PIN_GO_IMAGE="${PIN_GO_IMAGE:-golang:1.27.3-alpine3.24@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c}"
 
 # The admin READ API is off in every overlay; the cutover turns it on so each
 # check can ask the control plane what it is actually running.
