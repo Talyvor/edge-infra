@@ -21,19 +21,9 @@ on:
       - 'deploy/local/**'
       - 'Dockerfile.control-plane'
       - 'osb/Dockerfile'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'auth-service/**'
-      - 'cmd/**'
-      - 'internal/**'
-      - 'go.mod'
-      - 'go.sum'
-      # internal/ciguard reads these, so a change to them alone must run it.
-      - '.github/workflows/**'
-      - 'deploy/local/**'
-      - 'Dockerfile.control-plane'
-      - 'osb/Dockerfile'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
 
 jobs:
   auth-service:

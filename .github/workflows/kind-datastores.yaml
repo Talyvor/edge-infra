@@ -33,29 +33,9 @@ on:
       - 'auth-service/Dockerfile'
       - 'Makefile'
       - '.github/workflows/kind-datastores.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'deploy/helm/edge-datastores/**'
-      - 'deploy/local/datastores.sh'
-      - 'deploy/local/lib.sh'
-      - 'deploy/local/manifests/namespaces.yaml'
-      - 'deploy/local/manifests/postgres.yaml'
-      - 'deploy/local/manifests/nats.yaml'
-      # Everything deploy/local/*.sh builds an image from — internal/ciguard
-      # fails if a build input stops triggering a kind workflow (B28.198).
-      - 'cmd/**'
-      - 'internal/**'
-      - 'migrations/**'
-      - 'go.mod'
-      - 'go.sum'
-      - 'Dockerfile.control-plane'
-      - 'osb/**'
-      - 'auth-service/src/**'
-      - 'auth-service/Cargo.*'
-      - 'auth-service/Dockerfile'
-      - 'Makefile'
-      - '.github/workflows/kind-datastores.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
   workflow_dispatch:
 
 concurrency:

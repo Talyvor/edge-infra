@@ -28,17 +28,9 @@ on:
       - 'internal/migrate/**'
       - 'migrations/**'
       - '.github/workflows/osb-test.yaml'
-  pull_request:
-    branches: [main]
-    paths:
-      - 'osb/**'
-      - 'internal/store/**'
-      - 'internal/secrets/**'
-      - 'cmd/secrets/**'
-      - 'cmd/server/**'
-      - 'internal/migrate/**'
-      - 'migrations/**'
-      - '.github/workflows/osb-test.yaml'
+  # Pull requests run this through pr.yaml, which calls it when a file the push
+  # paths above name changes, so its checks can be required (B33.2).
+  workflow_call:
 
 jobs:
   pytest:

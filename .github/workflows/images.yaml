@@ -6,24 +6,10 @@ on:
   # fails if a workflow has no schedule (B28.199).
   schedule:
     - cron: '17 3 * * *'
-  # release.yaml builds through this workflow before it pins the charts.
+  # release.yaml builds through this workflow before it pins the charts, and
+  # pr.yaml runs it on pull requests (B33.2).
   workflow_call:
   push:
-    branches: [main]
-    paths:
-      - 'cmd/**'
-      - 'internal/**'
-      - 'Dockerfile.control-plane'
-      - 'osb/**'
-      - 'auth-service/src/**'
-      - 'auth-service/Cargo.*'
-      - 'auth-service/Dockerfile'
-      - 'deploy/hack/release-version.sh'
-      - 'deploy/hack/supply-chain.sh'
-      - 'deploy/hack/image-scan.sh'
-      - 'test/image-scan/**'
-      - '.github/workflows/images.yaml'
-  pull_request:
     branches: [main]
     paths:
       - 'cmd/**'
