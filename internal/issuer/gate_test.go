@@ -3,6 +3,7 @@ package issuer
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strings"
 	"testing"
 )
@@ -34,12 +35,13 @@ func TestSCIMRefusalsLockTheClientIP(t *testing.T) {
 	}
 }
 
-// Forged SSO callbacks (no sign-in started here) lock the client IP before the
-// issuer would ever exchange a code with the IdP.
-func TestSSOForgedCallbacksLockTheClientIP(t *testing.T) {
+// Code exchanges the IdP refuses lock the client IP, so a caller cannot make
+// the issuer call the IdP without end; SCIM from the same IP is unaffected.
+func TestSSOFailedExchangesLockTheClientIP(t *testing.T) {
 	idp := newFakeIdP(t)
 	srv := testServer(t, &fakeStore{})
 	users := &memUsers{users: map[string]*SCIMUser{}}
+	srv.EnableSCIM(users, testSCIMToken)
 	if err := srv.EnableSSO(SSOConfig{
 		Issuer: idp.srv.URL, ClientID: "edge", ClientSecret: "s3cret",
 		RedirectURL: "https://issuer.example/sso/callback", CAFile: idp.caFile(t),
@@ -47,16 +49,29 @@ func TestSSOForgedCallbacksLockTheClientIP(t *testing.T) {
 		t.Fatal(err)
 	}
 	h := srv.Routes()
-	code := 0
-	for i := 0; i < 6; i++ {
-		req := httptest.NewRequest(http.MethodGet, "/sso/callback?code=c&state=forged", nil)
-		req.RemoteAddr = "203.0.113.9:4000"
+	exchange := func() int {
 		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, "/sso/login", nil))
+		state := rec.Result().Header.Get("Location")
+		u, _ := url.Parse(state)
+		req := httptest.NewRequest(http.MethodGet, "/sso/callback?code=not-issued&state="+url.QueryEscape(u.Query().Get("state")), nil)
+		for _, c := range rec.Result().Cookies() {
+			req.AddCookie(c)
+		}
+		rec = httptest.NewRecorder()
 		h.ServeHTTP(rec, req)
-		code = rec.Code
+		return rec.Code
 	}
-	if code != http.StatusTooManyRequests {
-		t.Fatalf("6th forged callback = %d, want 429", code)
+	for i := 0; i < 5; i++ {
+		if code := exchange(); code != http.StatusUnauthorized {
+			t.Fatalf("exchange %d = %d, want 401", i+1, code)
+		}
+	}
+	if code := exchange(); code != http.StatusTooManyRequests {
+		t.Fatalf("6th exchange = %d, want 429", code)
+	}
+	if rec := scimDo(t, srv, http.MethodGet, "/scim/v2/Users", ""); rec.Code != http.StatusOK {
+		t.Fatalf("SCIM from the same IP = %d, want 200", rec.Code)
 	}
 }
 

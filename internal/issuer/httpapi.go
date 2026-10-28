@@ -41,11 +41,16 @@ type Server struct {
 	// throttle gates repeated failed logins per (client IP + account) before the
 	// expensive argon2 verify runs.
 	throttle *Throttle
-	// gate throttles repeated refusals (400, 401, 403) per client IP on /scim/v2
-	// and /sso, with the same policy as /login: a guessed SCIM token or a
-	// forged SSO callback is locked out, and the IdP code exchange is not an
-	// amplifier.
-	gate *Throttle
+	// scimGate and ssoGate lock a client IP after repeated credential failures
+	// (401) with the same policy as /login: a wrong SCIM bearer token, or an SSO
+	// code exchange the IdP refuses — the only /sso step that calls out. Kept
+	// apart so a success on one never clears failures on the other. Only 401s
+	// count: a forged state (400) costs nothing to refuse, and a user the IdP
+	// does not vouch for (403) is not an attack.
+	// shortcut: keyed on RemoteAddr, which behind the hostNetwork gateway is the
+	// node's address, so a lock covers that node's clients; key on the
+	// gateway's X-Forwarded-For once the issuer trusts it from gatewayCIDRs.
+	scimGate, ssoGate *Throttle
 	// scim and sso are nil unless enabled (EnableSCIM / EnableSSO).
 	scim *scimHandler
 	sso  *ssoHandler
@@ -56,8 +61,8 @@ func NewServer(store LoginStore, minter *Minter, keys *KeySet, log *slog.Logger)
 	dummy, _ := HashPassword("unused-timing-equalizer")
 	// 5 consecutive failures per (IP+account) → lock, 1s doubling up to 15m.
 	throttle := NewThrottle(5, time.Second, 15*time.Minute)
-	gate := NewThrottle(5, time.Second, 15*time.Minute)
-	return &Server{store: store, minter: minter, keys: keys, log: log, dummyHash: dummy, throttle: throttle, gate: gate}
+	return &Server{store: store, minter: minter, keys: keys, log: log, dummyHash: dummy, throttle: throttle,
+		scimGate: NewThrottle(5, time.Second, 15*time.Minute), ssoGate: NewThrottle(5, time.Second, 15*time.Minute)}
 }
 
 // EnableSCIM serves SCIM 2.0 user provisioning under /scim/v2, for callers
@@ -87,23 +92,23 @@ func (s *Server) Routes() http.Handler {
 	gated := http.NewServeMux()
 	if s.scim != nil {
 		s.scim.routes(gated)
-		mux.Handle("/scim/v2/", s.gated(gated))
+		mux.Handle("/scim/v2/", gate(s.scimGate, gated))
 	}
 	if s.sso != nil {
 		s.sso.routes(gated)
-		mux.Handle("/sso/", s.gated(gated))
+		mux.Handle("/sso/", gate(s.ssoGate, gated))
 	}
 	return mux
 }
 
-// gated refuses a client IP locked by s.gate, and counts its refusals. Only a
+// gate refuses a client IP that t has locked, and counts its 401s. Only a
 // request that got past the credentials (a SCIM call with the token, an SSO
 // callback the IdP vouched for) clears the count: /sso/login always succeeds,
 // so it must not.
-func (s *Server) gated(next http.Handler) http.Handler {
+func gate(t *Throttle, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := clientIP(r)
-		if ok, retry := s.gate.Allow(key); !ok {
+		if ok, retry := t.Allow(key); !ok {
 			w.Header().Set("Retry-After", strconv.Itoa(int(retry.Seconds())+1))
 			writeError(w, http.StatusTooManyRequests, "too many attempts")
 			return
@@ -111,10 +116,10 @@ func (s *Server) gated(next http.Handler) http.Handler {
 		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
 		next.ServeHTTP(rec, r)
 		switch {
-		case rec.status == http.StatusBadRequest || rec.status == http.StatusUnauthorized || rec.status == http.StatusForbidden:
-			s.gate.Fail(key)
+		case rec.status == http.StatusUnauthorized:
+			t.Fail(key)
 		case rec.status < 400 && r.URL.Path != "/sso/login":
-			s.gate.Reset(key)
+			t.Reset(key)
 		}
 	})
 }
