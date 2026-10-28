@@ -27,9 +27,13 @@ spec:
   containers:
     - name: test
       image: {{ include "redis.image" (dict "image" .Values.image "global" .Values.global) | quote }}
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { cpu: 200m, memory: 128Mi }
       imagePullPolicy: {{ .Values.image.pullPolicy }}
       securityContext:
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
       # Only what any client of the datastores gets: the connection Secret.

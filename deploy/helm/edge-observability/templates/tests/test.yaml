@@ -24,6 +24,9 @@ spec:
   containers:
     - name: test
       image: {{ include "edge-observability.image" (dict "image" .Values.tests.image "global" .Values.global) | quote }}
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { cpu: 200m, memory: 128Mi }
       imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
       securityContext:
         {{- include "edge-observability.containerSecurityContext" . | nindent 8 }}

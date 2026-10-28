@@ -63,12 +63,14 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: nats
           image: {{ include "nats.image" (dict "image" .Values.image "global" .Values.global) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           args: ["--config", "/etc/nats/conf/nats.conf"]

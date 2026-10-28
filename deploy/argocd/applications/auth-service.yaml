@@ -15,6 +15,11 @@ spec:
       valueFiles:
         - values.yaml
         - ../../profiles/ha/auth-service.yaml
+      parameters:
+        # The CIDR(s) of the nodes running edge-proxy: the NetworkPolicy (on
+        # by default) admits the gateway from these addresses only.
+        - name: networkPolicy.gatewayCIDRs[0]
+          value: "10.0.0.0/16"
   destination:
     server: https://kubernetes.default.svc
     namespace: infra

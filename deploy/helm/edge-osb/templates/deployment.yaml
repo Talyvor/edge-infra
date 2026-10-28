@@ -50,10 +50,12 @@ spec:
         runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: api
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-osb.image" (dict "image" .Values.api.image "global" .Values.global) | quote }}

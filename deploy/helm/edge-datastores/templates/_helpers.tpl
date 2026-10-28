@@ -73,6 +73,7 @@ spec:
   imagePullSecrets:
     {{- toYaml . | nindent 4 }}
   {{- end }}
+  automountServiceAccountToken: false
   securityContext:
     runAsNonRoot: true
     seccompProfile:

@@ -38,6 +38,9 @@ MIGRATIONS="$(find "$REPO_ROOT/migrations" "$REPO_ROOT/osb/migrations" -name '*.
 MIGRATE_SET=(--set migrate.image.repository=edge-migrate
              --set "migrate.image.tag=$IMAGE_TAG"
              --set migrate.image.pullPolicy=Never)
+# NetworkPolicies are on by default: client_check's pod is admitted the way a
+# customer admits their own service, through networkPolicy.extraIngress.
+CLIENT_SET=(--set-json 'networkPolicy.extraIngress=[{"from":[{"podSelector":{"matchLabels":{"role":"datastore-client"}}}]}]')
 
 if kind get clusters 2>/dev/null | grep -qx "$CLUSTER_NAME"; then
   die "kind cluster '$CLUSTER_NAME' already exists — delete it (kind delete cluster --name $CLUSTER_NAME) or pick another CLUSTER_NAME"
@@ -90,7 +93,7 @@ client_check() {
   k -n "$ns" apply -f - >/dev/null <<EOF
 apiVersion: v1
 kind: Pod
-metadata: { name: $pod }
+metadata: { name: $pod, labels: { role: datastore-client } }
 spec:
   restartPolicy: Never
   containers:
@@ -151,7 +154,7 @@ kind load docker-image --name "$CLUSTER_NAME" "edge-migrate:$IMAGE_TAG"
 
 # ---- bundled -----------------------------------------------------------------
 section "BUNDLED — helm install $RELEASE -> ns/$BUNDLED_NS (Postgres, Redis, NATS from the chart)"
-h install "$RELEASE" "$CHART" -n "$BUNDLED_NS" --create-namespace "${MIGRATE_SET[@]}" --wait --timeout 10m
+h install "$RELEASE" "$CHART" -n "$BUNDLED_NS" --create-namespace "${MIGRATE_SET[@]}" "${CLIENT_SET[@]}" --wait --timeout 10m
 [ "$(release_status "$BUNDLED_NS")" = deployed ] || die "release is $(release_status "$BUNDLED_NS"), not deployed"
 for s in postgres redis nats; do
   wait_rollout "statefulset/$RELEASE-$s" "$BUNDLED_NS" 60s
@@ -166,7 +169,7 @@ ok "helm test $RELEASE: the chart's own test pods reached Postgres, Redis and NA
 
 section "BUNDLED — an upgrade keeps the credentials"
 before="$(k -n "$BUNDLED_NS" get secret "$SECRET" -o json | jq -cS .data)"
-h upgrade "$RELEASE" "$CHART" -n "$BUNDLED_NS" "${MIGRATE_SET[@]}" --wait --timeout 10m
+h upgrade "$RELEASE" "$CHART" -n "$BUNDLED_NS" "${MIGRATE_SET[@]}" "${CLIENT_SET[@]}" --wait --timeout 10m
 after="$(k -n "$BUNDLED_NS" get secret "$SECRET" -o json | jq -cS .data)"
 [ "$before" = "$after" ] || die "the upgrade changed the connection Secret — the datastores keep their first-start passwords, so clients would be locked out"
 ok "connection Secret unchanged by the upgrade"

@@ -16,6 +16,10 @@ spec:
         - values.yaml
         - ../../profiles/ha/edge-issuer.yaml
       parameters:
+        # The CIDR(s) of the nodes running edge-proxy: the NetworkPolicy (on
+        # by default) admits the gateway from these addresses only.
+        - name: networkPolicy.gatewayCIDRs[0]
+          value: "10.0.0.0/16"
         # The kid of the signing key in the issuer-signing-keys Secret
         # (docs/auth-front-deploy.md).
         - name: config.activeKid

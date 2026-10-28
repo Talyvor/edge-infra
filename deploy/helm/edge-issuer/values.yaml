@@ -15,7 +15,7 @@ config:
   # kid of the signing key to mint with — must match a <kid>.pem in the
   # signing-keys Secret below. Required.
   activeKid: ""
-  tokenTTL: 1h
+  tokenTTL: 1h   # more than 0, at most 24h: a token cannot be revoked before it expires
 
 # Sign-in through the customer's OIDC identity provider, and SCIM user
 # provisioning from it. Both are switched on by keys in config.existingSecret:
@@ -112,7 +112,9 @@ fullnameOverride: ""
 # ArgoCD syncs base values, and switching it on without the right gatewayCIDRs
 # cuts the gateway off. Switch it on per install, with that cluster's CIDRs.
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  # Set gatewayCIDRs below to your nodes' CIDR(s); enabled: false opts out.
+  enabled: true
   # CIDR(s) of the nodes running edge-proxy. Envoy runs hostNetwork, so its
   # traffic carries the NODE IP, which no pod or namespace selector matches.
   # Required when enabled — the chart refuses to render without it.

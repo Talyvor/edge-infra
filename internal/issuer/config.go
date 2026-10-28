@@ -7,13 +7,16 @@ import (
 	"time"
 )
 
+// MaxTokenTTL bounds ISSUER_TOKEN_TTL (B50.8).
+const MaxTokenTTL = 24 * time.Hour
+
 // Config is the issuer's runtime configuration, sourced from the environment.
 type Config struct {
 	ListenAddr  string        // ISSUER_LISTEN_ADDR (default :8081)
 	DatabaseURL string        // ISSUER_DATABASE_URL (required)
 	IssuerURL   string        // ISSUER_URL — the `iss` claim (required)
 	Audience    string        // ISSUER_AUDIENCE — the `aud` claim (required)
-	TokenTTL    time.Duration // ISSUER_TOKEN_TTL (default 1h)
+	TokenTTL    time.Duration // ISSUER_TOKEN_TTL (default 1h, at most MaxTokenTTL)
 	KeysDir     string        // ISSUER_KEYS_DIR — dir of <kid>.pem (required)
 	ActiveKID   string        // ISSUER_ACTIVE_KID — signer (required)
 	TLSCertFile string        // ISSUER_TLS_CERT (optional)
@@ -65,6 +68,10 @@ func ConfigFromEnv() (*Config, error) {
 	ttl := optional("ISSUER_TOKEN_TTL", "1h")
 	if cfg.TokenTTL, err = time.ParseDuration(ttl); err != nil {
 		return nil, fmt.Errorf("ISSUER_TOKEN_TTL: %w", err)
+	}
+	// A token cannot be revoked before it expires, so its lifetime is bounded.
+	if cfg.TokenTTL <= 0 || cfg.TokenTTL > MaxTokenTTL {
+		return nil, fmt.Errorf("ISSUER_TOKEN_TTL must be more than 0 and at most %s (got %s)", MaxTokenTTL, cfg.TokenTTL)
 	}
 
 	cfg.TLSCertFile = os.Getenv("ISSUER_TLS_CERT")

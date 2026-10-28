@@ -150,7 +150,8 @@ tests:
 # node's address. Enforced by Calico (or any CNI that enforces NetworkPolicy).
 # OFF in the base values, like every chart's.
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  enabled: true
   # More ingress rules per component, appended as written, e.g. an ingress
   # controller in front of Grafana:
   #   grafana:

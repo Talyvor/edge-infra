@@ -15,10 +15,13 @@ spec:
     metadata:
       labels:
         {{- include "edge-proxy.selectorLabels" . | nindent 8 }}
-      {{- with .Values.podAnnotations }}
       annotations:
+        {{- if .Values.hostNetwork }}
+        edge.talyvor.com/security-exception: "hostNetwork: Envoy is the gateway on every node's own address, so agents' traffic cannot route around it"
+        {{- end }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
-      {{- end }}
+        {{- end }}
     spec:
       serviceAccountName: {{ include "edge-proxy.serviceAccountName" . }}
       hostNetwork: {{ .Values.hostNetwork }}
@@ -38,9 +41,13 @@ spec:
         - name: bootstrap
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-proxy.image" (dict "image" .Values.bootstrapImage "global" .Values.global) | quote }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 128Mi }
           command:
             - /bin/sh
             - -c
@@ -58,10 +65,12 @@ spec:
               mountPath: /bootstrap-src
             - name: envoy-config
               mountPath: /etc/envoy
+      automountServiceAccountToken: false
       containers:
         - name: envoy
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-proxy.image" (dict "image" .Values.image "global" .Values.global) | quote }}

@@ -30,11 +30,13 @@ REGISTRY="${IMAGE_REGISTRY:-}"
 switches() { # chart
 	case "$1" in
 	auth-service)
-		echo --set confidential.enabled=true \
+		echo --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' --set confidential.enabled=true \
 			--set 'confidential.attestation.measurements[0]=00' \
 			--set confidential.attestation.trustedKey=verify-image-pins
 		;;
-	edge-issuer) echo --set config.activeKid=verify-image-pins ;;
+	edge-issuer) echo --set config.activeKid=verify-image-pins --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' ;;
+	# NetworkPolicies are on by default and need the nodes' CIDR (B50.8).
+	edge-control-plane | edge-osb | edge-ratelimit) echo --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' ;;
 	edge-datastores)
 		echo --set backup.enabled=true \
 			--set backup.s3.bucket=verify-image-pins \

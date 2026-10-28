@@ -1,0 +1,72 @@
+# verify-chart-security.sh --self-test: every rule below must fire on this file.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: insecure }
+spec:
+  template:
+    spec:
+      hostNetwork: true
+      hostPID: true
+      hostIPC: true
+      securityContext: { runAsUser: 0 }
+      volumes:
+        - { name: host, hostPath: { path: / } }
+      containers:
+        - name: app
+          image: example.com/app:1.0
+          securityContext:
+            privileged: true
+            capabilities: { add: [SYS_ADMIN] }
+---
+# The annotation waives hostNetwork, and only hostNetwork.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: excepted }
+spec:
+  template:
+    metadata:
+      annotations:
+        edge.talyvor.com/security-exception: "hostNetwork: the self-test's own reason"
+    spec:
+      hostNetwork: true
+      hostPID: true
+      automountServiceAccountToken: false
+      securityContext: { runAsNonRoot: true, seccompProfile: { type: RuntimeDefault } }
+      containers:
+        - name: app
+          image: example.com/app@sha256:0000000000000000000000000000000000000000000000000000000000000000
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 10m, memory: 16Mi }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata: { name: wildcard }
+rules:
+  - { apiGroups: [""], resources: ["*"], verbs: [get] }
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata: { name: admin }
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: cluster-admin }
+subjects: [{ kind: ServiceAccount, name: default, namespace: default }]
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: plain }
+spec:
+  rules: [{ host: example.com }]
+---
+# A server pod, and no NetworkPolicy anywhere in this render.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: server }
+spec:
+  template:
+    spec:
+      containers:
+        - { name: app, image: example.com/app:1.0 }

@@ -14,4 +14,4 @@ persistence:
   storageClass: ""
 resources:
   requests: { cpu: 100m, memory: 256Mi }
-  limits: { memory: 1Gi }
+  limits: { cpu: "2", memory: 1Gi }

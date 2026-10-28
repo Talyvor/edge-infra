@@ -28,15 +28,21 @@ spec:
   containers:
     - name: test
       image: {{ include "edge-ratelimit.image" (dict "image" .Values.tests.image "global" .Values.global) | quote }}
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { cpu: 200m, memory: 128Mi }
       imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
       securityContext:
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
       volumeMounts:
         - name: tls
           mountPath: /tls
           readOnly: true
+        - name: tmp   # the root filesystem is read-only; the gRPC frame is written here
+          mountPath: /tmp
       command: ["sh", "-c"]
       args:
         - |
@@ -57,6 +63,8 @@ spec:
           fi
           echo "PASS: the rate-limit service refuses a plaintext call"
   volumes:
+    - name: tmp
+      emptyDir: {}
     - name: tls
       secret:
         secretName: {{ .Values.tls.existingSecret }}

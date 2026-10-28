@@ -51,6 +51,10 @@ imagePullSecrets: []
 serviceAccount:
   create: true
   name: ""
+  # Mount the pod's ServiceAccount token. Only a JWT_ISSUERS entry with a
+  # token_file (the cluster's own ServiceAccount issuer, its keys closed to
+  # anonymous callers) needs it; the cluster CA is mounted either way.
+  automountToken: false
 
 resources:
   requests:
@@ -103,7 +107,9 @@ fullnameOverride: ""
 # ArgoCD syncs base values, and switching it on without the right gatewayCIDRs
 # cuts the gateway off. Switch it on per install, with that cluster's CIDRs.
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  # Set gatewayCIDRs below to your nodes' CIDR(s); enabled: false opts out.
+  enabled: true
   # CIDR(s) of the nodes running edge-proxy. Envoy runs hostNetwork, so its
   # traffic carries the NODE IP, which no pod or namespace selector matches.
   # Required when enabled — the chart refuses to render without it.

@@ -10,4 +10,4 @@ persistence:
   storageClass: ""
 resources:
   requests: { cpu: 50m, memory: 64Mi }
-  limits: { memory: 512Mi }
+  limits: { cpu: 500m, memory: 512Mi }

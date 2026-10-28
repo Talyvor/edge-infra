@@ -83,10 +83,12 @@ spec:
       annotations:
         checksum/config: {{ $config | sha256sum }}
         checksum/rules: {{ (.Files.Glob "rules/*.yaml").AsConfig | sha256sum }}
+        edge.talyvor.com/security-exception: "automountServiceAccountToken not false: kubernetes_sd_configs discovers scrape targets through the API, read-only under the ClusterRole above"
     spec:
       serviceAccountName: prometheus
       securityContext:
         {{- include "edge-observability.podSecurityContext" 65534 | nindent 8 }}
+      automountServiceAccountToken: true
       containers:
         - name: prometheus
           image: {{ include "edge-observability.image" (dict "image" .Values.prometheus.image "global" .Values.global) | quote }}
