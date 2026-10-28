@@ -155,6 +155,13 @@ spec:
               value: {{ .mountPath }}/ca.crt
             {{- end }}
           volumeMounts:
+            # The cluster's CA, where a ServiceAccount mount would put it, for a
+            # JWT_ISSUERS entry trusting the cluster's own ServiceAccount issuer
+            # (ca_file). The token itself is not mounted: auth-service never
+            # calls the API.
+            - name: kube-root-ca
+              mountPath: /var/run/secrets/kubernetes.io/serviceaccount
+              readOnly: true
             {{- with .Values.tls }}
             - name: auth-tls
               mountPath: {{ .mountPath }}
@@ -179,6 +186,9 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
+        - name: kube-root-ca
+          configMap:
+            name: kube-root-ca.crt
         {{- if .Values.jwksFiles.existingSecret }}
         - name: jwks-files
           secret:

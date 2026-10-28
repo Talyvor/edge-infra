@@ -163,7 +163,8 @@ metadata: { name: edge-control-plane, labels: { app: edge-control-plane } }
 spec:
   selector: { matchLabels: { app: edge-control-plane } }
   template:
-    metadata: { labels: { app: edge-control-plane } }
+    # The chart's own name label: the datastores' NetworkPolicy admits it.
+    metadata: { labels: { app: edge-control-plane, app.kubernetes.io/name: edge-control-plane } }
     spec:
       securityContext: { runAsNonRoot: true, runAsUser: 65532, runAsGroup: 65532, seccompProfile: { type: RuntimeDefault } }
       containers:
