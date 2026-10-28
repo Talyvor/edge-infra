@@ -90,10 +90,12 @@ spec:
               memory: 64Mi
       {{- end }}
       {{- end }}
+      automountServiceAccountToken: false
       containers:
         - name: auth-service
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "auth-service.image" (dict "image" .Values.image "global" .Values.global) | quote }}

@@ -65,7 +65,8 @@ nats:
 # backups, `helm test`) and to the clients below. Enforced by Calico (or any CNI
 # that enforces NetworkPolicy). OFF in the base values, like every chart's.
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  enabled: true
   # NetworkPolicy peers that may reach all three. The default is Talyvor Edge's
   # own services, and their schema migrations, in this namespace; running them in
   # another, add a namespaceSelector to the entry.
@@ -109,7 +110,9 @@ migrate:
   backoffLimit: 6
   # How long the Job may take, retries included.
   activeDeadlineSeconds: 600
-  resources: {}
+  resources:
+    requests: { cpu: 50m, memory: 64Mi }
+    limits: { cpu: 500m, memory: 256Mi }
 
 # ---- backup and restore -------------------------------------------------------
 # A CronJob dumps every database below (pg_dump, custom format) and uploads the
@@ -176,4 +179,7 @@ backup:
       repository: amazon/aws-cli
       tag: "2.37.9@sha256:92de75724b6a746951f0e8b915d86bbccd7cb55aff96cd0cb4f7017272160780"
       pullPolicy: IfNotPresent
-  resources: {}
+  # pg_dump and the S3 client stream to the pod's emptyDir, not memory.
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: "1", memory: 1Gi }

@@ -37,10 +37,12 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       terminationGracePeriodSeconds: 30
+      automountServiceAccountToken: false
       containers:
         - name: control-plane
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-control-plane.image" (dict "image" .Values.image "global" .Values.global) | quote }}

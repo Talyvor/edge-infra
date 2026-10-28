@@ -36,10 +36,12 @@ spec:
         runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: secrets
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-secrets.image" (dict "image" .Values.image "global" .Values.global) | quote }}

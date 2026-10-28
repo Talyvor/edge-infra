@@ -69,6 +69,7 @@ metadata:
     "helm.sh/hook": test
     # Kept after a run, so `helm test --logs` can read it; the next run replaces it.
     "helm.sh/hook-delete-policy": before-hook-creation
+    edge.talyvor.com/security-exception: "automountServiceAccountToken not false: the test reads the issuers and certificates through the API, read-only under the ClusterRole above"
 spec:
   restartPolicy: Never
   serviceAccountName: {{ include "edge-pki.fullname" . }}-test
@@ -78,12 +79,17 @@ spec:
     runAsGroup: 101
     seccompProfile:
       type: RuntimeDefault
+  automountServiceAccountToken: true
   containers:
     - name: test
       image: {{ include "edge-pki.image" (dict "image" .Values.tests.image "global" .Values.global) | quote }}
+      resources:
+        requests: { cpu: 10m, memory: 16Mi }
+        limits: { cpu: 200m, memory: 128Mi }
       imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
       securityContext:
         allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
         capabilities:
           drop: ["ALL"]
       command: ["sh", "-c"]

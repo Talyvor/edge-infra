@@ -1,0 +1,4 @@
+# verify-chart-security.sh --self-test: a secret value in a chart's defaults.
+config:
+  adminPassword: hunter2-not-a-real-one
+  existingSecret: a-name-not-a-value

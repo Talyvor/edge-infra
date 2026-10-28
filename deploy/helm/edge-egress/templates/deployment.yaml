@@ -42,9 +42,13 @@ spec:
         - name: bootstrap
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-egress.image" (dict "image" .Values.bootstrapImage "global" .Values.global) | quote }}
+          resources:
+            requests: { cpu: 10m, memory: 16Mi }
+            limits: { cpu: 200m, memory: 128Mi }
           command:
             - /bin/sh
             - -c
@@ -62,10 +66,12 @@ spec:
               mountPath: /bootstrap-src
             - name: envoy-config
               mountPath: /etc/envoy
+      automountServiceAccountToken: false
       containers:
         - name: envoy
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-egress.image" (dict "image" .Values.image "global" .Values.global) | quote }}

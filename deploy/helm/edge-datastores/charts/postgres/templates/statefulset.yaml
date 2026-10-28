@@ -58,12 +58,14 @@ spec:
         fsGroup: 70
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: postgres
           image: {{ include "postgres.image" (dict "image" .Values.image "global" .Values.global) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           env:
@@ -99,11 +101,21 @@ spec:
           volumeMounts:
             - name: data
               mountPath: /var/lib/postgresql/data
+            # The root filesystem is read-only: the socket, the lock file and
+            # the entrypoint's scratch files go here.
+            - name: run
+              mountPath: /var/run/postgresql
+            - name: tmp
+              mountPath: /tmp
             {{- if .Values.extraDatabases }}
             - name: initdb
               mountPath: /docker-entrypoint-initdb.d
             {{- end }}
       volumes:
+        - name: run
+          emptyDir: {}
+        - name: tmp
+          emptyDir: {}
         {{- if .Values.extraDatabases }}
         - name: initdb
           configMap:

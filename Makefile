@@ -42,17 +42,17 @@ helm-lint:
 # airgap; ha by default) to verify templates produce valid YAML.
 helm-template-dry-run:
 	@test -d deploy/profiles/$(PROFILE) || { echo "no profile deploy/profiles/$(PROFILE)"; exit 2; }
-	helm template edge-control-plane deploy/helm/edge-control-plane \
+	helm template edge-control-plane deploy/helm/edge-control-plane --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' \
 	  --values deploy/profiles/$(PROFILE)/edge-control-plane.yaml
 	helm template edge-proxy deploy/helm/edge-proxy \
 	  --values deploy/profiles/$(PROFILE)/edge-proxy.yaml
-	helm template edge-osb deploy/helm/edge-osb \
+	helm template edge-osb deploy/helm/edge-osb --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' \
 	  --values deploy/profiles/$(PROFILE)/edge-osb.yaml
-	helm template auth-service deploy/helm/auth-service \
+	helm template auth-service deploy/helm/auth-service --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' \
 	  --values deploy/profiles/$(PROFILE)/auth-service.yaml
-	helm template edge-issuer deploy/helm/edge-issuer --set config.activeKid=k1 \
+	helm template edge-issuer deploy/helm/edge-issuer --set config.activeKid=k1 --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' \
 	  --values deploy/profiles/$(PROFILE)/edge-issuer.yaml
-	helm template edge-ratelimit deploy/helm/edge-ratelimit \
+	helm template edge-ratelimit deploy/helm/edge-ratelimit --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' \
 	  --values deploy/profiles/$(PROFILE)/edge-ratelimit.yaml
 
 # Every chart rendered for base, every profile in deploy/profiles, the kind values

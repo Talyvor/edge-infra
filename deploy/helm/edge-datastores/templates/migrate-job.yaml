@@ -34,6 +34,7 @@ spec:
         runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: migrate
           image: {{ include "edge-datastores.image" (dict "image" .Values.migrate.image "global" .Values.global) | quote }}

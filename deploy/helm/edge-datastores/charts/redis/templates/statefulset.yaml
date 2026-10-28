@@ -42,12 +42,14 @@ spec:
         fsGroup: 1000
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: redis
           image: {{ include "redis.image" (dict "image" .Values.image "global" .Values.global) | quote }}
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           command: ["sh", "-c"]

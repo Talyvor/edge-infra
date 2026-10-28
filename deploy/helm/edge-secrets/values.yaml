@@ -83,7 +83,8 @@ fullnameOverride: ""
 # client cert (kubectl port-forward is not network traffic and still works).
 # Enforced by Calico (or any CNI that enforces NetworkPolicy).
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  enabled: true
   extraIngress: []
 
 global:

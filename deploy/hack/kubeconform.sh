@@ -28,11 +28,13 @@ command -v kubeconform >/dev/null || { echo "kubeconform not found on PATH"; exi
 switches() { # chart
 	case "$1" in
 	auth-service)
-		echo --set confidential.enabled=true \
+		echo --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' --set confidential.enabled=true \
 			--set 'confidential.attestation.measurements[0]=00' \
 			--set confidential.attestation.trustedKey=kubeconform
 		;;
-	edge-issuer) echo --set config.activeKid=kubeconform ;;
+	edge-issuer) echo --set config.activeKid=kubeconform --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' ;;
+	# NetworkPolicies are on by default and need the nodes' CIDR (B50.8).
+	edge-control-plane | edge-osb | edge-ratelimit) echo --set 'networkPolicy.gatewayCIDRs[0]=10.0.0.0/16' ;;
 	edge-datastores)
 		echo --set backup.enabled=true \
 			--set backup.s3.bucket=kubeconform \
@@ -100,6 +102,12 @@ fi
 echo "kubeconform -strict, Kubernetes $KUBERNETES_VERSION, $(ls "$OUT"/*.yaml | wc -l | tr -d ' ') render(s):"
 kubeconform -strict -summary -output text -kubernetes-version "$KUBERNETES_VERSION" \
 	-schema-location default -schema-location "$CRDS_CATALOG" "$OUT"/*.yaml || fail=1
+
+# The same renders against the B50.8 security checklist, after it proves each of
+# its rules can fail.
+echo
+bash "$REPO/deploy/hack/verify-chart-security.sh" --self-test || fail=1
+bash "$REPO/deploy/hack/verify-chart-security.sh" "$OUT" || fail=1
 
 echo
 if [ "$fail" -eq 0 ]; then

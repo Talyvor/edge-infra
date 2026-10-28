@@ -29,10 +29,12 @@ spec:
         runAsGroup: 65532
         seccompProfile:
           type: RuntimeDefault
+      automountServiceAccountToken: false
       containers:
         - name: migrate
           securityContext:
             allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
           image: {{ include "edge-issuer.image" (dict "image" .Values.image "global" .Values.global) | quote }}

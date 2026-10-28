@@ -41,6 +41,11 @@ type Server struct {
 	// throttle gates repeated failed logins per (client IP + account) before the
 	// expensive argon2 verify runs.
 	throttle *Throttle
+	// gate throttles repeated refusals (400, 401, 403) per client IP on /scim/v2
+	// and /sso, with the same policy as /login: a guessed SCIM token or a
+	// forged SSO callback is locked out, and the IdP code exchange is not an
+	// amplifier.
+	gate *Throttle
 	// scim and sso are nil unless enabled (EnableSCIM / EnableSSO).
 	scim *scimHandler
 	sso  *ssoHandler
@@ -51,7 +56,8 @@ func NewServer(store LoginStore, minter *Minter, keys *KeySet, log *slog.Logger)
 	dummy, _ := HashPassword("unused-timing-equalizer")
 	// 5 consecutive failures per (IP+account) → lock, 1s doubling up to 15m.
 	throttle := NewThrottle(5, time.Second, 15*time.Minute)
-	return &Server{store: store, minter: minter, keys: keys, log: log, dummyHash: dummy, throttle: throttle}
+	gate := NewThrottle(5, time.Second, 15*time.Minute)
+	return &Server{store: store, minter: minter, keys: keys, log: log, dummyHash: dummy, throttle: throttle, gate: gate}
 }
 
 // EnableSCIM serves SCIM 2.0 user provisioning under /scim/v2, for callers
@@ -78,13 +84,49 @@ func (s *Server) Routes() http.Handler {
 	mux.HandleFunc("GET /.well-known/jwks.json", s.handleJWKS)
 	mux.HandleFunc("GET /healthz", s.handleHealthz)
 	mux.HandleFunc("GET /readyz", s.handleReadyz)
+	gated := http.NewServeMux()
 	if s.scim != nil {
-		s.scim.routes(mux)
+		s.scim.routes(gated)
+		mux.Handle("/scim/v2/", s.gated(gated))
 	}
 	if s.sso != nil {
-		s.sso.routes(mux)
+		s.sso.routes(gated)
+		mux.Handle("/sso/", s.gated(gated))
 	}
 	return mux
+}
+
+// gated refuses a client IP locked by s.gate, and counts its refusals. Only a
+// request that got past the credentials (a SCIM call with the token, an SSO
+// callback the IdP vouched for) clears the count: /sso/login always succeeds,
+// so it must not.
+func (s *Server) gated(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		key := clientIP(r)
+		if ok, retry := s.gate.Allow(key); !ok {
+			w.Header().Set("Retry-After", strconv.Itoa(int(retry.Seconds())+1))
+			writeError(w, http.StatusTooManyRequests, "too many attempts")
+			return
+		}
+		rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+		next.ServeHTTP(rec, r)
+		switch {
+		case rec.status == http.StatusBadRequest || rec.status == http.StatusUnauthorized || rec.status == http.StatusForbidden:
+			s.gate.Fail(key)
+		case rec.status < 400 && r.URL.Path != "/sso/login":
+			s.gate.Reset(key)
+		}
+	})
+}
+
+type statusRecorder struct {
+	http.ResponseWriter
+	status int
+}
+
+func (r *statusRecorder) WriteHeader(code int) {
+	r.status = code
+	r.ResponseWriter.WriteHeader(code)
 }
 
 type loginRequest struct {

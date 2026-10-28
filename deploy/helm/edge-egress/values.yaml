@@ -114,7 +114,8 @@ tests:
 # Calico (or any CNI that enforces NetworkPolicy). OFF in the base values, like
 # every chart's: switch it on per install, naming that cluster's agents.
 networkPolicy:
-  enabled: false
+  # On by default (B50.8): only the flows the policy lists reach these pods.
+  enabled: true
   # Namespaces whose pods may use the proxy, as namespace label selectors. The
   # default is the label that also locks a namespace's own egress to edge-egress
   # (k8s/policies/agent-egress-lockdown.yaml). Required when enabled.
