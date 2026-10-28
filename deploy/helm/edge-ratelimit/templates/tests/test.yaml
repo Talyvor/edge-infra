@@ -41,6 +41,8 @@ spec:
         - name: tls
           mountPath: /tls
           readOnly: true
+        - name: tmp   # the root filesystem is read-only; the gRPC frame is written here
+          mountPath: /tmp
       command: ["sh", "-c"]
       args:
         - |
@@ -61,6 +63,8 @@ spec:
           fi
           echo "PASS: the rate-limit service refuses a plaintext call"
   volumes:
+    - name: tmp
+      emptyDir: {}
     - name: tls
       secret:
         secretName: {{ .Values.tls.existingSecret }}
