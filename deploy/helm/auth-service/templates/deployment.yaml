@@ -16,9 +16,14 @@ spec:
     metadata:
       labels:
         {{- include "auth-service.selectorLabels" . | nindent 8 }}
-      {{- with .Values.podAnnotations }}
+      {{- if or .Values.podAnnotations .Values.serviceAccount.automountToken }}
       annotations:
+        {{- if .Values.serviceAccount.automountToken }}
+        edge.talyvor.com/security-exception: "automountServiceAccountToken not false: a JWT_ISSUERS token_file fetches the cluster's ServiceAccount-issuer keys"
+        {{- end }}
+        {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
+        {{- end }}
       {{- end }}
     spec:
       serviceAccountName: {{ include "auth-service.serviceAccountName" . }}
@@ -90,7 +95,7 @@ spec:
               memory: 64Mi
       {{- end }}
       {{- end }}
-      automountServiceAccountToken: false
+      automountServiceAccountToken: {{ .Values.serviceAccount.automountToken }}
       containers:
         - name: auth-service
           securityContext:
@@ -155,13 +160,14 @@ spec:
               value: {{ .mountPath }}/ca.crt
             {{- end }}
           volumeMounts:
-            # The cluster's CA, where a ServiceAccount mount would put it, for a
-            # JWT_ISSUERS entry trusting the cluster's own ServiceAccount issuer
-            # (ca_file). The token itself is not mounted: auth-service never
-            # calls the API.
+            {{- if not .Values.serviceAccount.automountToken }}
+            # The cluster's CA where the ServiceAccount mount would put it, for a
+            # JWT_ISSUERS entry trusting the cluster's ServiceAccount issuer
+            # (ca_file) without a token_file.
             - name: kube-root-ca
               mountPath: /var/run/secrets/kubernetes.io/serviceaccount
               readOnly: true
+            {{- end }}
             {{- with .Values.tls }}
             - name: auth-tls
               mountPath: {{ .mountPath }}
@@ -186,9 +192,11 @@ spec:
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       volumes:
+        {{- if not .Values.serviceAccount.automountToken }}
         - name: kube-root-ca
           configMap:
             name: kube-root-ca.crt
+        {{- end }}
         {{- if .Values.jwksFiles.existingSecret }}
         - name: jwks-files
           secret:

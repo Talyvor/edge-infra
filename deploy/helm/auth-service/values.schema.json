@@ -149,6 +149,9 @@
         },
         "name": {
           "type": "string"
+        },
+        "automountToken": {
+          "type": "boolean"
         }
       },
       "additionalProperties": false

@@ -3702,6 +3702,9 @@ phase36_sa_token_gateway() {
       token_file: "/var/run/secrets/kubernetes.io/serviceaccount/token"}]')"
   k -n "$INFRA_NS" patch secret auth-service-secrets --type merge \
     -p "$(jq -cn --arg v "$issuers" '{stringData: {JWT_ISSUERS: $v}}')" >/dev/null
+  # The token_file entry needs auth-service's own token mounted (off by default).
+  h upgrade auth-service "$REPO_ROOT/deploy/helm/auth-service" -n "$INFRA_NS" --reuse-values \
+    --set serviceAccount.automountToken=true --wait --timeout 3m >/dev/null
   k -n "$INFRA_NS" rollout restart deploy/auth-service >/dev/null
   k -n "$INFRA_NS" rollout status deploy/auth-service --timeout=180s >/dev/null \
     || { k -n "$INFRA_NS" logs deploy/auth-service --tail=30 || true; die "PHASE36 FAIL: auth-service could not load $iss's keys with its own token"; }
