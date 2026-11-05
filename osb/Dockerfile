@@ -15,10 +15,11 @@ WORKDIR /app
 COPY --from=deps /usr/local/lib/python3.12 /usr/local/lib/python3.12
 COPY --from=deps /usr/local/bin/uvicorn   /usr/local/bin/uvicorn
 # CVE-2026-103111 (pcre2, HIGH) is fixed in Debian's libpcre2-8-0
-# 10.46-1~deb13u3, newer than the pinned base carries. Drop this once a base
+# 10.46-1~deb13u3, and CVE-2026-109518 (apt, HIGH) in apt/libapt-pkg7.0
+# 3.0.4, both newer than the pinned base carries. Drop each once a base
 # digest bump brings it.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends --only-upgrade libpcre2-8-0 \
+ && apt-get install -y --no-install-recommends --only-upgrade libpcre2-8-0 apt libapt-pkg7.0 \
  && rm -rf /var/lib/apt/lists/*
 COPY osb/ .
 # The broker's modules are plain files in /app, importable from any directory.
