@@ -16,8 +16,8 @@ metadata:
       pinned to the digest that was verified, so the tag cannot move after.
       Images built before 12 Oct 2026, when this repository moved from
       gaboracnicolai to the Talyvor organisation, are under
-      ghcr.io/gaboracnicolai/* and are checked against the signer they really
-      have, gaboracnicolai/edge-infra.
+      ghcr.io/gaboracnicolai/* and were signed outside the organisation: they
+      are refused, however they are signed.
 spec:
   # Fail closed: if Kyverno cannot reach the registry or Rekor, a first-party
   # pod is refused rather than admitted unverified.
@@ -52,36 +52,6 @@ spec:
                       githubWorkflowRepository: Talyvor/edge-infra
                     rekor:
                       url: https://rekor.sigstore.dev
-    # Built before 12 Oct 2026, when this repository moved from gaboracnicolai to the
-    # Talyvor organisation: those images are under ghcr.io/gaboracnicolai/* and were
-    # signed by the repository under its old name, so they are checked against that
-    # signer, with everything else the same. Remove this rule once nothing runs or
-    # tests an image from there (deploy/local/lib.sh's Phase 26 fixtures are the last).
-    - name: signed-by-edge-infra-images-workflow-before-the-move
-      match:
-        any:
-          - resources:
-              kinds:
-                - Pod
-      verifyImages:
-        - imageReferences:
-            - "ghcr.io/gaboracnicolai/*"
-          failureAction: Enforce
-          required: true
-          mutateDigest: true
-          verifyDigest: true
-          attestors:
-            - entries:
-                - keyless:
-                    issuer: https://token.actions.githubusercontent.com
-                    subjectRegExp: '^https://github\.com/gaboracnicolai/edge-infra/\.github/workflows/images\.yaml@refs/(heads/main|tags/v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?)$'
-                    # images.yaml is a reusable workflow: another repository
-                    # calling it gets a certificate with this same subject, so
-                    # the repository the run was in is pinned on its own.
-                    additionalExtensions:
-                      githubWorkflowRepository: gaboracnicolai/edge-infra
-                    rekor:
-                      url: https://rekor.sigstore.dev
     # imageReferences matches the image as written, and the runtime pulls
     # ghcr.io:443/talyvor/… or GHCR.IO/talyvor/… just the same, so
     # such a spelling would skip the check above. Refuse it.
@@ -94,9 +64,8 @@ spec:
       validate:
         failureAction: Enforce
         message: >-
-          A first-party image must be written as ghcr.io/talyvor/<name> (or, built
-          before 12 Oct 2026, ghcr.io/gaboracnicolai/<name>), or its signature is not
-          checked.
+          A first-party image must be written as ghcr.io/talyvor/<name>, or its
+          signature is not checked.
         foreach:
           - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
             deny:
@@ -108,6 +77,22 @@ spec:
                   - key: "{{ starts_with(element.image, 'ghcr.io/talyvor/') }}"
                     operator: Equals
                     value: false
+    # Built before 12 Oct 2026, when this repository moved from gaboracnicolai to the
+    # Talyvor organisation: those images were signed by gaboracnicolai/edge-infra, a
+    # signer outside the organisation, so none of them is admitted, in any spelling.
+    - name: no-images-from-before-the-move
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+      validate:
+        failureAction: Enforce
+        message: >-
+          Images under ghcr.io/gaboracnicolai were built before 12 Oct 2026 and are
+          not signed by the Talyvor organisation. Use the same image from
+          ghcr.io/talyvor.
+        foreach:
           - list: "request.object.spec.[containers, initContainers, ephemeralContainers][]"
             deny:
               conditions:
@@ -115,6 +100,3 @@ spec:
                   - key: "{{ contains(to_lower(element.image), 'gaboracnicolai/') }}"
                     operator: Equals
                     value: true
-                  - key: "{{ starts_with(element.image, 'ghcr.io/gaboracnicolai/') }}"
-                    operator: Equals
-                    value: false
