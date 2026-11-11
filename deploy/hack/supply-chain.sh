@@ -38,8 +38,8 @@ set -euo pipefail
 
 REPO="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # Since 12 Oct 2026 the repository is Talyvor/edge-infra and its images are under ghcr.io/talyvor.
-# An image built before then is under ghcr.io/gaboracnicolai and was signed by gaboracnicolai/edge-infra:
-# verify one with RELEASE_REGISTRY=ghcr.io/gaboracnicolai SIGNER_REPO=gaboracnicolai/edge-infra.
+# An image built before then is under ghcr.io/gaboracnicolai, signed outside the organisation,
+# and k8s/policies/verify-image-signatures.yaml refuses it: use ghcr.io/talyvor.
 REGISTRY="${RELEASE_REGISTRY:-ghcr.io/talyvor}"
 SIGNER_REPO="${SIGNER_REPO:-Talyvor/edge-infra}"
 ISSUER=https://token.actions.githubusercontent.com
