@@ -2248,10 +2248,10 @@ phase25_default_jwt_osb() {
 }
 
 # ---- Phase 26 — an unsigned first-party image is refused at admission (B28.210)
-# k8s/policies/verify-image-signatures.yaml: every ghcr.io/talyvor/* image (and, built before the
-# move on 12 Oct 2026, every ghcr.io/gaboracnicolai/* one, against its own signer)
-# must carry a keyless cosign signature from this repo's images.yaml, on main or
-# a release tag. Kyverno fetches the signature from ghcr and checks it against
+# k8s/policies/verify-image-signatures.yaml: every ghcr.io/talyvor/* image must carry
+# a keyless cosign signature from this repo's images.yaml, on main or a release tag,
+# and no ghcr.io/gaboracnicolai/* one (built before the move on 12 Oct 2026, signed
+# outside the organisation) is admitted at all. Kyverno fetches the signature from ghcr and checks it against
 # the public Rekor log. Both Deployments have 0 replicas: the check is admission,
 # so nothing has to pull or run.
 # phase26_pair <generation> <signed image> <unsigned image> — RED, the ghcr.io:443
@@ -2302,7 +2302,18 @@ phase26_signed_images() {
     || die "PHASE26 FAIL: clusterpolicy/verify-image-signatures never became Ready"
   k create namespace signed-images --dry-run=client -o yaml | k apply -f - >/dev/null
   phase26_pair "ghcr.io/talyvor (signed by Talyvor/edge-infra)" "$SIGNED_IMAGE" "$UNSIGNED_IMAGE"
-  phase26_pair "ghcr.io/gaboracnicolai (before the move)" "$OLD_SIGNED_IMAGE" "$OLD_UNSIGNED_IMAGE"
+
+  # B58.20: the policy used to trust a second signer, the repository under its old
+  # name, and admitted this image. It is signed — just not by the organisation.
+  section "RED — a signed image from before the move (signer gaboracnicolai/edge-infra) MUST be DENIED"
+  log "image: $OLD_SIGNED_IMAGE"
+  local out
+  out="$(k -n signed-images create deployment old-signer --image="$OLD_SIGNED_IMAGE" --replicas=0 2>&1 || true)"
+  echo "  Kyverno denial:"; printf '%s\n' "$out" | fold -s -w 96 | sed 's/^/    /'
+  has "$out" no-images-from-before-the-move \
+    || die "PHASE26 FAIL: an image signed outside the organisation was not refused: $out"
+  ok "RED proven — an image signed by gaboracnicolai/edge-infra is refused; only Talyvor/edge-infra is trusted"
+  k -n signed-images delete deploy old-signer --ignore-not-found >/dev/null
 
   k delete namespace signed-images --wait=false >/dev/null
   ok "Phase 26 verified — an unsigned first-party image is refused at admission, a signed one runs pinned to its digest"

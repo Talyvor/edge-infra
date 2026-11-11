@@ -6,8 +6,9 @@ The eight images are `edge-control-plane`, `edge-issuer`, `edge-ratelimit`,
 `edge-secrets`, `edge-migrate`, `edge-attest`, `edge-osb` and `auth-service`, all
 under `ghcr.io/talyvor`. Until 12 Oct 2026, when this repository moved from
 `gaboracnicolai` to the Talyvor organisation, they were published under
-`ghcr.io/gaboracnicolai` and signed as `gaboracnicolai/edge-infra`; check one of
-those against that signer instead.
+`ghcr.io/gaboracnicolai` and signed as `gaboracnicolai/edge-infra`, outside the
+organisation. Those images are not supported: the admission policy below refuses
+them. Install the same version from `ghcr.io/talyvor`.
 
 | | What it is | Check it with |
 |---|---|---|
@@ -164,7 +165,8 @@ image that passes is rewritten to the digest Kyverno verified, e.g.
 `edge-osb:1.2.3@sha256:…`, so the tag cannot move to other bytes after.
 A first-party image written any other way, such as `ghcr.io:443/talyvor/…`
 or `GHCR.IO/talyvor/…`, is refused too, because the check matches the
-image as written. Images from other registries are not checked.
+image as written. An image under `ghcr.io/gaboracnicolai/`, built before the
+move, is refused whatever signed it. Images from other registries are not checked.
 
 The policy fails closed. If Kyverno cannot reach ghcr.io or the public Rekor
 log, it refuses the pod. To pull `edge-issuer` and `edge-ratelimit`, which are
