@@ -43,7 +43,7 @@ FROM ${BUILD_MODE}-source AS source
 
 
 # ---- runtime ----------------------------------------------------------
-FROM gcr.io/distroless/cc:nonroot@sha256:e792ab3d241a468a4fd7519ddbbebe66b49b5f365771716ea688ad40b6c6f1c2
+FROM gcr.io/distroless/cc:nonroot@sha256:cb87acc574abe719b6e5c547384defa2f7b1f24af9605d3f618cf852495d8be2
 COPY --from=source /auth-service /auth-service
 USER nonroot:nonroot
 EXPOSE 50051 9090
