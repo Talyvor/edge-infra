@@ -2286,10 +2286,22 @@ phase26_pair() {
 
   section "GREEN — a Deployment of a signed main build is admitted, pinned to the digest Kyverno verified"
   log "image: $SIGNED_IMAGE"
-  local img
-  img="$(k -n signed-images create deployment signed --image="$SIGNED_IMAGE" --replicas=0 \
-    -o jsonpath='{.spec.template.spec.containers[0].image}' 2>&1)" \
-    || die "PHASE26 FAIL ($gen): the signed image was refused: $img"
+  # Kyverno fetches the signature from ghcr and checks it against Rekor inside
+  # the webhook's 30s. When either is slow the API server gives up on the call
+  # ("failed calling webhook … context deadline exceeded") and nothing is
+  # created (13 Nov 2026, B43.35), so that one failure is tried again. A denial,
+  # or any other error, still fails at once.
+  local img="" n=0
+  while :; do
+    img="$(k -n signed-images create deployment signed --image="$SIGNED_IMAGE" --replicas=0 \
+      -o jsonpath='{.spec.template.spec.containers[0].image}' 2>&1)" && break
+    has "$img" "failed calling webhook" && [ "$n" -lt 4 ] \
+      || die "PHASE26 FAIL ($gen): the signed image was refused: $img"
+    n=$((n + 1))
+    log "Kyverno's webhook did not answer in time (attempt $n), trying again: $img"
+    k -n signed-images delete deploy signed --ignore-not-found >/dev/null 2>&1 || true
+    sleep 10
+  done
   echo "  admitted as: $img"
   has "$img" "@sha256:" || die "PHASE26 FAIL ($gen): admitted without a digest — Kyverno did not verify it"
   ok "[$gen] GREEN — the signed image was admitted and pinned to its digest"
