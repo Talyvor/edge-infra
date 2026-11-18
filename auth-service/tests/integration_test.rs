@@ -723,3 +723,44 @@ async fn test_keyless_agent_credentials_stripped_and_assertion_signed() {
         other => panic!("expected a 407, got {other:?}"),
     }
 }
+
+// B67.7 (Dependabot #1, jsonwebtoken GHSA type confusion): a token that is not valid yet must be
+// denied, whether its `nbf` is a number or a string. The gateway never checked `nbf` at all, and
+// jsonwebtoken 9 skipped a check whose claim had the wrong JSON type as though it were absent.
+fn claims_with(extra: serde_json::Value) -> serde_json::Value {
+    let now = now_secs();
+    let mut claims = serde_json::json!({
+        "sub": "user-nbf",
+        "exp": now + 3600,
+        "iat": now,
+        "aud": TEST_AUDIENCE,
+        "iss": TEST_ISSUER,
+    });
+    for (k, v) in extra.as_object().expect("object") {
+        claims[k] = v.clone();
+    }
+    claims
+}
+
+#[tokio::test]
+async fn test_token_not_valid_yet_denied() {
+    let fix = make_fixture(TEST_KID);
+    let (svc, _metrics) = build_service(fix.jwks.clone());
+    let later = now_secs() + 3600;
+
+    let ok = sign_jwt(&fix.private_pem, TEST_KID, &claims_with(serde_json::json!({"nbf": now_secs()})));
+    assert!(check_token(&svc, &ok).await.is_ok(), "a token valid now is accepted");
+
+    let numeric = sign_jwt(&fix.private_pem, TEST_KID, &claims_with(serde_json::json!({"nbf": later})));
+    assert!(check_token(&svc, &numeric).await.is_err(), "nbf an hour ahead must be denied");
+
+    let string = sign_jwt(&fix.private_pem, TEST_KID, &claims_with(serde_json::json!({"nbf": later.to_string()})));
+    assert!(check_token(&svc, &string).await.is_err(), "nbf as a string must be denied, not skipped");
+
+    let exp_string = sign_jwt(
+        &fix.private_pem,
+        TEST_KID,
+        &claims_with(serde_json::json!({"exp": (now_secs() - 3600).to_string()})),
+    );
+    assert!(check_token(&svc, &exp_string).await.is_err(), "exp as a string must be denied");
+}

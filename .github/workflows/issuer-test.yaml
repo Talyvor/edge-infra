@@ -20,6 +20,11 @@ on:
   # paths above name changes, so its checks can be required (B33.2).
   workflow_call:
 
+# Least privilege by default (B67.7): every job reads the repo and nothing more; a job that
+# needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   issuer:
     runs-on: ubuntu-latest

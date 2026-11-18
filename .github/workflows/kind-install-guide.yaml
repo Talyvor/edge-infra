@@ -48,6 +48,11 @@ concurrency:
   group: kind-install-guide-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default (B67.7): every job reads the repo and nothing more; a job that
+# needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   kind-install-guide:
     runs-on: ubuntu-latest

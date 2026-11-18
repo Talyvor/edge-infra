@@ -41,6 +41,11 @@ concurrency:
   group: kind-e2e-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Least privilege by default (B67.7): every job reads the repo and nothing more; a job that
+# needs more asks for it in its own permissions block.
+permissions:
+  contents: read
+
 jobs:
   kind-e2e:
     runs-on: ubuntu-latest
