@@ -2,12 +2,9 @@
 # rust-audit job fails on any RustSec vulnerability in Cargo.lock.
 [advisories]
 ignore = [
-  # rsa: Marvin timing side channel in RSA decryption and signing with a
-  # PRIVATE key; no fixed release exists. Since jsonwebtoken 10 (B67.7) rsa is
-  # in the shipped binary as its rust_crypto backend, used only to VERIFY RS256
-  # signatures with an identity provider's public key, which holds no secret to
-  # leak. The binary never decrypts or signs with RSA (its own transit
-  # assertions are Ed25519); tests/integration_test.rs also mints throwaway
-  # RSA test keys with it.
+  # rsa: Marvin timing side channel; no fixed release exists. rsa is a
+  # [dev-dependencies] entry only — tests/integration_test.rs mints throwaway
+  # RSA keys with it — so it is not in the shipped binary. Cargo.lock does not
+  # record dependency kinds, so cargo-audit cannot tell that for itself.
   "RUSTSEC-2023-0071",
 ]
