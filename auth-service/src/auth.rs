@@ -72,6 +72,8 @@ impl TrustedIssuer {
         let mut validation = Validation::new(Algorithm::RS256);
         validation.set_audience(&[audience]);
         validation.set_issuer(&[issuer]);
+        // A token is refused before its `nbf` as well as after its `exp` (B67.7).
+        validation.validate_nbf = true;
         Self { jwks, validation }
     }
 }
@@ -597,7 +599,7 @@ aMVnTHM8GoM=\n\
             .expect("jwt_or_mtls + cert must authorize on the cert");
         assert!(
             subject.contains("test-client"),
-            "subject must carry the client cert CN; got {subject:?}"
+            "subject must carry the client cert CN"
         );
     }
 
@@ -668,7 +670,7 @@ aMVnTHM8GoM=\n\
         let subject = client_cert_subject(&url_encoded);
         assert!(
             subject.contains("test-client"),
-            "must parse subject from a URL-encoded PEM; got {subject:?}"
+            "must parse subject from a URL-encoded PEM"
         );
     }
 
