@@ -2508,10 +2508,14 @@ MOCK_HOST="llm.mock-provider.svc.cluster.local"
 IMPOSTOR_HOST="impostor.mock-provider.svc.cluster.local"
 
 # agent_egress_curl [curl args...] — curl from the agent-egress pod. Echoes curl's
-# verbose output and "curl-exit=<rc>".
+# verbose output, "http-code=<status>" and "curl-exit=<rc>". Check the status
+# with http-code, never "< HTTP/1.1 ...": kubectl exec carries the pod's stdout
+# and stderr on separate streams and can interleave them, so a body chunk can
+# land between curl's "< " and the status line (B43.38). http-code is written
+# by -w to stdout after the body, on the one stream.
 agent_egress_curl() {
   local out rc=0
-  out="$(k -n agents exec agent-egress -- curl -sv --max-time 8 "$@" 2>&1)" || rc=$?
+  out="$(k -n agents exec agent-egress -- curl -sv --max-time 8 -w '\nhttp-code=%{http_code}\n' "$@" 2>&1)" || rc=$?
   printf '%s\ncurl-exit=%s\n' "$out" "$rc"
 }
 
@@ -2605,13 +2609,13 @@ SQL
 
   section "GREEN — plain HTTP through edge-egress: edge-egress originates the TLS and verifies the provider"
   out="$(agent_egress_curl -x "$EGRESS_PROXY" "http://$MOCK_HOST/")"
-  has "$out" "< HTTP/1.1 200" && has "$out" "Name: mock-llm" \
+  has "$out" "http-code=200" && has "$out" "Name: mock-llm" \
     || { printf '%s\n' "$out" | tail -15; die "PHASE28 FAIL: plain HTTP through edge-egress did not reach the provider"; }
   ok "agent-egress -> edge-egress (TLS to $MOCK_HOST) -> 200, Name: mock-llm"
 
   section "RED — a host not in egress_destinations: 403 from edge-egress, CONNECT too"
   out="$(agent_egress_curl -x "$EGRESS_PROXY" "http://example.com/")"
-  has "$out" "< HTTP/1.1 403" && has "$out" "edge-egress: destination not allowed" \
+  has "$out" "http-code=403" && has "$out" "edge-egress: destination not allowed" \
     || { printf '%s\n' "$out" | tail -15; die "PHASE28 FAIL: an unlisted host was not refused by edge-egress"; }
   out="$(agent_egress_curl -x "$EGRESS_PROXY" "https://example.com/")"
   has "$out" "CONNECT tunnel failed, response 403" \
@@ -2623,7 +2627,7 @@ SQL
   out="$(agent_egress_curl -x "$EGRESS_PROXY" "http://$IMPOSTOR_HOST/")"
   after="$(egress_stat cluster.egress_impostor.ssl.fail_verify_san)"
   echo "  $IMPOSTOR_HOST -> $(printf '%s\n' "$out" | grep -m1 '^< HTTP/' | tr -d '\r' | sed 's/^< //'); Envoy ssl.fail_verify_san $before -> $after"
-  has "$out" "< HTTP/1.1 503" && ! has "$out" "Name: mock-llm" \
+  has "$out" "http-code=503" && ! has "$out" "Name: mock-llm" \
     || { printf '%s\n' "$out" | tail -15; die "PHASE28 FAIL: edge-egress served a host its certificate does not name"; }
   [ "$before" != "?" ] && [ "$after" != "?" ] && [ "$after" -gt "$before" ] \
     || die "PHASE28 FAIL: ssl.fail_verify_san did not rise ($before -> $after), so the certificate check was not what refused it"
