@@ -17,10 +17,11 @@ COPY --from=deps /usr/local/bin/uvicorn   /usr/local/bin/uvicorn
 # CVE-2026-103111 (pcre2, HIGH) is fixed in Debian's libpcre2-8-0
 # 10.46-1~deb13u3, CVE-2026-109518 (apt, HIGH) in apt/libapt-pkg7.0
 # 3.0.4, and CVE-2026-76844 (zlib, HIGH) in zlib1g
-# 1:1.3.dfsg+really1.3.1-1+deb13u1, all newer than the pinned base carries.
+# 1:1.3.dfsg+really1.3.1-1+deb13u1, and CVE-2026-124851 (zstd, HIGH) in
+# libzstd1 1.5.7+dfsg-1+deb13u1, all newer than the pinned base carries.
 # Drop each once a base digest bump brings it.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends --only-upgrade libpcre2-8-0 apt libapt-pkg7.0 zlib1g \
+ && apt-get install -y --no-install-recommends --only-upgrade libpcre2-8-0 apt libapt-pkg7.0 zlib1g libzstd1 \
  && rm -rf /var/lib/apt/lists/*
 COPY osb/ .
 # The broker's modules are plain files in /app, importable from any directory.
